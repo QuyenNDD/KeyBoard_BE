@@ -1,6 +1,6 @@
 package com.project.keyboard.system;
 
-import com.project.keyboard.enity.Users;
+import com.project.keyboard.entity.Users;
 
 import java.util.List;
 

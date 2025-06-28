@@ -1,6 +1,6 @@
 package com.project.keyboard.system.impl;
 
-import com.project.keyboard.enity.Users;
+import com.project.keyboard.entity.Users;
 import com.project.keyboard.repository.user.UserRepository;
 import com.project.keyboard.system.UserService;
 import org.springframework.beans.factory.annotation.Autowired;

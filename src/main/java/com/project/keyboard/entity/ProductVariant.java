@@ -1,4 +1,4 @@
-package com.project.keyboard.enity;
+package com.project.keyboard.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,7 +20,7 @@ public class ProductVariant {
 
     @ManyToOne
     @JoinColumn(name = "product_id")
-    private Product productId;
+    private Product product;
 
     private String color;
 

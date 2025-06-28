@@ -1,4 +1,4 @@
-package com.project.keyboard.enity;
+package com.project.keyboard.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Data
@@ -25,13 +26,13 @@ public class Product {
 
     @ManyToOne
     @JoinColumn(name = "category_id")
-    private ProductCategory categoryId;
+    private ProductCategory category;
 
     @Column(name = "min_price", precision = 18, scale = 2)
     private BigDecimal minPrice;
 
     @Lob
-    @Column(name = "imgs")
+    @Column(name = "imgs", columnDefinition = "TEXT")
     private String imgs;
 
     @Lob
@@ -46,4 +47,7 @@ public class Product {
 
     @Column(name = "create_at", columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductVariant> variants;
 }

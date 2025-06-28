@@ -1,4 +1,4 @@
-package com.project.keyboard.enity;
+package com.project.keyboard.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -13,14 +13,14 @@ import lombok.NoArgsConstructor;
 public class ProductCategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JoinColumn(name = "category_id")
+    @Column(name = "category_id")
     private int categoryId;
 
     private String name;
 
     @ManyToOne
-    @Column(name = "parent_id")
-    private ProductCategory parentId;
+    @JoinColumn(name = "parent_id")
+    private ProductCategory parent;
 
     private String description;
 }

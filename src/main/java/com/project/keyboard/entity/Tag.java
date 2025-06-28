@@ -1,4 +1,4 @@
-package com.project.keyboard.enity;
+package com.project.keyboard.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

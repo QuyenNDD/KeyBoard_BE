@@ -1,6 +1,6 @@
 package com.project.keyboard.repository.user;
 
-import com.project.keyboard.enity.Users;
+import com.project.keyboard.entity.Users;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;

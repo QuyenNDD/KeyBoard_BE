@@ -1,4 +1,4 @@
-package com.project.keyboard.enity;
+package com.project.keyboard.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -18,7 +18,8 @@ public class OrderDetails {
     @Column(name = "order_detail_id")
     private int orderDetailId;
 
-    @Column(name = "order_id")
+    @ManyToOne
+    @JoinColumn(name = "order_id")
     private Order orderId;
 
     @ManyToOne
