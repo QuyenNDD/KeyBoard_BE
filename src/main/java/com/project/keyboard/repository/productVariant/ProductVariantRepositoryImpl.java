@@ -1,5 +1,6 @@
 package com.project.keyboard.repository.productVariant;
 
+import com.project.keyboard.dto.request.ProductVariantUpdateDTO;
 import com.project.keyboard.entity.ProductVariant;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -72,5 +73,52 @@ public class ProductVariantRepositoryImpl implements ProductVariantRepository{
             log.error(e.getMessage());
             throw e;
         }
+    }
+
+    @Override
+    public void updateVariant(ProductVariantUpdateDTO v) {
+        try {
+            String sql = "UPDATE product_variants SET color = ?, price = ?, stock_quantity = ?, sku = ?, img = ? WHERE variant_id = ?";
+            jdbcTemplate.update(sql,
+                    v.getColor(),
+                    v.getPrice(),
+                    v.getStockQuantity(),
+                    v.getSku(),
+                    v.getImg(),
+                    v.getVariantId());
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+
+    }
+    @Override
+    public void insertVariant(ProductVariantUpdateDTO v, int productId) {
+        try {
+            String sql = "INSERT INTO product_variants (product_id, color, price, stock_quantity, sku, img) VALUES (?, ?, ?, ?, ?, ?)";
+            jdbcTemplate.update(sql,
+                    productId,
+                    v.getColor(),
+                    v.getPrice(),
+                    v.getStockQuantity(),
+                    v.getSku(),
+                    v.getImg());
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+
+    }
+
+    @Override
+    public void deleteVariantById(int variantId) {
+        try {
+            String sql = "DELETE FROM product_variants WHERE variant_id = ?";
+            jdbcTemplate.update(sql, variantId);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+
     }
 }

@@ -1,18 +1,24 @@
 package com.project.keyboard.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.keyboard.dto.request.ProductRequestDTO;
 import com.project.keyboard.dto.request.ProductUpdateDTO;
+import com.project.keyboard.dto.request.ProductVariantRequestDTO;
+import com.project.keyboard.dto.request.ProductVariantUpdateDTO;
 import com.project.keyboard.dto.response.api.ApiResponse;
 import com.project.keyboard.entity.Product;
 import com.project.keyboard.system.ProductService;
 import com.project.keyboard.system.cloudinary.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/products")
@@ -37,32 +43,60 @@ public class ProductController {
         }
     }
 
-    @PostMapping("/addProduct")
-    public ResponseEntity<ApiResponse<Product>> addProduct(@RequestPart("product") ProductRequestDTO productDTO,
-                                                           @RequestPart("images") MultipartFile[] images){
+    @PostMapping(value = "/addProduct", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Void>> addProduct(
+            @RequestParam("product") String productJson,
+            @RequestParam(value = "variants", required = false) String variantsJson,
+            @RequestParam(value = "productImages", required = false) List<MultipartFile> productImages,
+            MultipartHttpServletRequest request
+    ) {
         try {
-            if (productDTO.getVariants().size() != images.length) {
-                return ResponseEntity.badRequest().body(
-                        new ApiResponse<>("Số lượng ảnh không khớp với số biến thể", 400, "error", null, null));
+            ObjectMapper mapper = new ObjectMapper();
+
+            // Parse product
+            ProductRequestDTO productDTO = mapper.readValue(productJson, ProductRequestDTO.class);
+
+            // Parse variants nếu có
+            List<ProductVariantRequestDTO> variantsDTO = new ArrayList<>();
+            if (variantsJson != null && !variantsJson.trim().isEmpty()) {
+                variantsDTO = mapper.readValue(variantsJson, new TypeReference<List<ProductVariantRequestDTO>>() {});
             }
 
-            // Upload từng ảnh lên Cloudinary và gán URL vào biến thể
-            for (int i = 0; i < images.length; i++) {
-                String url = cloudinaryService.upload(images[i]);
-                productDTO.getVariants().get(i).setImg(url);
+            // Upload ảnh sản phẩm chính
+            List<String> productImageUrls = new ArrayList<>();
+            if (productImages != null && !productImages.isEmpty()) {
+                for (MultipartFile img : productImages) {
+                    String url = cloudinaryService.upload(img);
+                    productImageUrls.add(url);
+                }
             }
+
+            // Gán URL ảnh sản phẩm
+            productDTO.setImgs(String.join(";", productImageUrls));
+
+            // Map ảnh biến thể nếu có
+            for (int i = 0; i < variantsDTO.size(); i++) {
+                String paramName = "variantImages_" + i;
+                List<MultipartFile> files = request.getFiles(paramName);
+                if (!files.isEmpty()) {
+                    String url = cloudinaryService.upload(files.get(0)); // 1 biến thể 1 ảnh
+                    variantsDTO.get(i).setImg(url);
+                }
+            }
+
+            productDTO.setVariants(variantsDTO);
 
             productService.createProduct(productDTO);
-            return ResponseEntity.ok(
-                    new ApiResponse<>("Them san pham thanh cong", 200, "success", null, null)
-            );
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage())
-            );
-        }
 
+            return ResponseEntity.ok(new ApiResponse<>("Thêm sản phẩm thành công", 200, "success", null, null));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
     }
+
+
 
     @PutMapping("/disableProduct/{productId}")
     public ResponseEntity<ApiResponse<Boolean>> disableProduct(@PathVariable int productId){
@@ -82,15 +116,39 @@ public class ProductController {
         }
     }
 
-    @PutMapping("/updateProduct")
-    public ResponseEntity<ApiResponse<Void>> updateProduct(@RequestPart("product") ProductUpdateDTO dto,
-                                                           @RequestPart(value = "images", required = false) MultipartFile[] images){
+    @PutMapping(value = "/updateProduct", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProduct(
+            @RequestParam("product") String productJson,
+            @RequestParam(value = "productImages", required = false) List<MultipartFile> productImages,
+            MultipartHttpServletRequest request
+    ) {
         try {
-            productService.updateProductWithImages(dto, images);
-            return ResponseEntity.ok(new ApiResponse<>("Cập nhật sản phẩm thành công", 200, "success", null, null));
+            ObjectMapper mapper = new ObjectMapper();
+            ProductUpdateDTO dto = mapper.readValue(productJson, ProductUpdateDTO.class);
+
+            // Lấy các file biến thể riêng
+            Map<Integer, MultipartFile> variantImageFiles = new HashMap<>();
+            Iterator<String> fileNames = request.getFileNames();
+            while (fileNames.hasNext()) {
+                String fileName = fileNames.next();
+                if (fileName.startsWith("variantImages_")) {
+                    String idxStr = fileName.substring("variantImages_".length());
+                    int index = Integer.parseInt(idxStr);
+                    MultipartFile file = request.getFile(fileName);
+                    if (file != null && !file.isEmpty()) {
+                        variantImageFiles.put(index, file);
+                    }
+                }
+            }
+            productService.updateProductWithImages(dto, productImages, variantImageFiles);
+
+            return ResponseEntity.ok(new ApiResponse<>("Cập nhật thành công", 200, "success", null, null));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    new ApiResponse<>("Lỗi khi cập nhật", 500, "error", null, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Lỗi khi cập nhật", 500, "error", null, e.getMessage()));
         }
     }
+
+
+
 }

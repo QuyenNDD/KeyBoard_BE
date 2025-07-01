@@ -1,7 +1,10 @@
 package com.project.keyboard.repository.product;
 
+import com.project.keyboard.dto.request.ProductUpdateDTO;
 import com.project.keyboard.entity.Product;
+import com.project.keyboard.entity.ProductCategory;
 import com.project.keyboard.entity.ProductVariant;
+import com.project.keyboard.repository.category.ProductCategoryRepository;
 import com.project.keyboard.repository.productVariant.ProductVariantRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -13,6 +16,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -26,6 +30,9 @@ public class ProductRepositoryImpl implements ProductRepository{
 
     @Autowired
     private ProductVariantRepository variantRepository;
+
+    @Autowired
+    private ProductCategoryRepository categoryRepository;
 
     protected Log log = LogFactory.getLog(getClass());
 
@@ -51,7 +58,7 @@ public class ProductRepositoryImpl implements ProductRepository{
             ps.setString(1, product.getName());
             ps.setString(2, product.getBrand());
             ps.setInt(3, product.getCategory().getCategoryId());
-            ps.setBigDecimal(4, product.getMinPrice());
+            ps.setBigDecimal(4, product.getMinPrice() != null ? product.getMinPrice() : BigDecimal.ZERO);
             ps.setString(5, product.getImgs());
             ps.setString(6, product.getDescription());
             ps.setInt(7, product.getStockQuantity());
@@ -63,7 +70,7 @@ public class ProductRepositoryImpl implements ProductRepository{
         int productId = keyHolder.getKey().intValue();
         product.setProductId(productId);
 
-        if (product.getVariants() != null) {
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             for (ProductVariant variant : product.getVariants()) {
                 variant.setProduct(product);
                 variantRepository.save(variant);
@@ -113,7 +120,30 @@ public class ProductRepositoryImpl implements ProductRepository{
                     product.isStatus(),
                     product.getProductId()
             );
-        } catch (Exception e) {
+        }catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+    @Override
+    public void updateProduct(ProductUpdateDTO dto){
+
+        try{
+            String categoryName = dto.getCategory();
+
+            ProductCategory category = categoryRepository.findByName(categoryName);
+            if (category == null) {
+                throw new RuntimeException("Danh mục sản phẩm không tồn tại");
+            }
+            String sql = "UPDATE products SET name = ?, brand = ?, description = ?, category_id = ?, imgs = ? WHERE product_id = ?";
+            jdbcTemplate.update(sql,
+                    dto.getName(),
+                    dto.getBrand(),
+                    dto.getDescription(),
+                    category.getCategoryId(),
+                    dto.getImgs(),
+                    dto.getProductId());
+        }catch (Exception e) {
             log.error(e.getMessage());
             throw e;
         }

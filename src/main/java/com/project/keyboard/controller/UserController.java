@@ -6,9 +6,7 @@ import com.project.keyboard.system.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -26,6 +24,34 @@ public class UserController {
                     new ApiResponse<>("Lấy danh sách người dùng thành công", 200, "success", users, null)
             );
         } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage())
+            );
+        }
+    }
+
+    @PostMapping("/banUser/{userId}")
+    public ResponseEntity<ApiResponse<Void>> banUser(@PathVariable int userId){
+        try {
+            userService.banUser(userId);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Khóa tài khoản thành công", 200, "success", null, null)
+            );
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage())
+            );
+        }
+    }
+
+    @PostMapping("/unBanUser/{userId}")
+    public ResponseEntity<ApiResponse<Void>> unBanUser(@PathVariable int userId){
+        try {
+            userService.unBanUser(userId);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Mở tài khoản thành công", 200, "success", null, null)
+            );
+        }catch (Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage())
             );

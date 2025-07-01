@@ -11,5 +11,7 @@ public class ProductRequestDTO {
     private String category;
     private String description;
     private boolean status;
+
+    private String imgs;
     private List<ProductVariantRequestDTO> variants;
 }

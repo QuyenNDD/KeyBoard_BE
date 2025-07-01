@@ -17,9 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,21 +46,25 @@ public class ProductServiceImpl implements ProductService {
         product.setBrand(productRequestDTO.getBrand());
         product.setDescription(productRequestDTO.getDescription());
         product.setStatus(productRequestDTO.isStatus());
+        product.setImgs(productRequestDTO.getImgs());
 
         ProductCategory category = productCategoryRepository.findByName(productRequestDTO.getCategory());
 
         product.setCategory(category);
 
-        List<ProductVariant> variants = productRequestDTO.getVariants().stream().map(variant -> {
-            ProductVariant productVariant = new ProductVariant();
-            productVariant.setColor(variant.getColor());
-            productVariant.setPrice(variant.getPrice());
-            productVariant.setStockQuantity(variant.getStockQuantity());
-            productVariant.setImg(variant.getImg());
-            productVariant.setSku(variant.getSku());
-            productVariant.setProduct(product);
-            return productVariant;
-        }).toList();
+        List<ProductVariant> variants = new ArrayList<>();
+        if (productRequestDTO.getVariants() != null) {
+            variants = productRequestDTO.getVariants().stream().map(variantDTO -> {
+                ProductVariant variant = new ProductVariant();
+                variant.setColor(variantDTO.getColor());
+                variant.setPrice(variantDTO.getPrice());
+                variant.setStockQuantity(variantDTO.getStockQuantity());
+                variant.setSku(variantDTO.getSku());
+                variant.setImg(variantDTO.getImg());
+                variant.setProduct(product);
+                return variant;
+            }).toList();
+        };
 
         product.setVariants(variants);
         productRepository.save(product);
@@ -90,7 +92,6 @@ public class ProductServiceImpl implements ProductService {
         existingProduct.setName(dto.getName());
         existingProduct.setBrand(dto.getBrand());
         existingProduct.setDescription(dto.getDescription());
-        existingProduct.setStatus(dto.isStatus());
 
         // Cập nhật danh mục
         ProductCategory category = productCategoryRepository.findByName(dto.getCategory());
@@ -131,48 +132,96 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void updateProductWithImages(ProductUpdateDTO dto, MultipartFile[] images){
-        Map<Integer, String> variantImageUrls = new HashMap<>();
+    public void updateProductWithImages(ProductUpdateDTO dto,
+                                        List<MultipartFile> productImages,
+                                        Map<Integer, MultipartFile> variantImageFiles) {
 
-        int imgIndex = 0;
-        for (ProductVariantUpdateDTO v : dto.getVariants()) {
-            if (v.isDeleted()) continue;
+        // ===== 1️⃣ Xử lý ẢNH SẢN PHẨM CHUNG =====
 
-            if (v.isReplaceImage() && images != null && imgIndex < images.length) {
-                // Tìm ảnh cũ
-                if (v.getVariantId() != 0) {
-                    ProductVariant old = productVariantRepository.findById(v.getVariantId());
-                    if (old != null && old.getImg() != null) {
-                        try {
-                            String publicId = cloudinaryService.extractPublicId(old.getImg());
-                            cloudinaryService.delete(publicId);
-                        }catch (IOException e){
-                            throw new RuntimeException("Lỗi khi xóa ảnh Cloudinary", e);
-                        }
+        // Lấy sản phẩm gốc
+        Product existingProduct = productRepository.findById(dto.getProductId());
+        List<String> oldImgsInDb = new ArrayList<>();
+        if (existingProduct.getImgs() != null && !existingProduct.getImgs().isEmpty()) {
+            oldImgsInDb = Arrays.asList(existingProduct.getImgs().split(";"));
+        }
 
-                    }
-                }
+        // FE gửi những ảnh muốn giữ lại
+        List<String> keepImgs = dto.getProductImgDTO() != null ? dto.getProductImgDTO().getExistingImg() : new ArrayList<>();
 
-                // Upload ảnh mới
+        // Tìm ảnh cần xoá
+        List<String> toDelete = oldImgsInDb.stream()
+                .filter(old -> !keepImgs.contains(old))
+                .toList();
+
+        // Xoá trên Cloudinary
+        for (String img : toDelete) {
+            try {
+                String publicId = cloudinaryService.extractPublicId(img);
+                cloudinaryService.delete(publicId);
+            }catch (IOException e) {
+                throw new RuntimeException("Upload ảnh thất bại!", e);
+            }
+
+        }
+
+        // Thêm ảnh mới
+        List<String> allProductImgs = new ArrayList<>(keepImgs);
+        if (productImages != null && !productImages.isEmpty()) {
+            for (MultipartFile img : productImages) {
                 try {
-                    String newUrl = cloudinaryService.upload(images[imgIndex++]);
-                    variantImageUrls.put(v.getVariantId(), newUrl);
-                } catch (IOException e) {
-                    throw new RuntimeException("Lỗi khi upload ảnh Cloudinary", e);
+                    String url = cloudinaryService.upload(img);
+                    allProductImgs.add(url);
+                }catch (IOException e) {
+                    throw new RuntimeException("Upload ảnh thất bại!", e);
+                }
+
+            }
+        }
+        dto.setImgs(String.join(";", allProductImgs));
+
+        // ===== 2️⃣ Xử lý BIẾN THỂ =====
+
+        for (int i = 0; i < dto.getVariants().size(); i++) {
+            ProductVariantUpdateDTO v = dto.getVariants().get(i);
+
+            if (v.isDeleted()) {
+                if (v.getVariantId() != 0 && v.getVariantId() > 0) {
+                    productVariantRepository.deleteVariantById(v.getVariantId());
+                }
+                continue;
+            }
+
+            String finalVariantImg = null;
+
+            // Có file mới ➜ upload, ghi đè
+            if (variantImageFiles.containsKey(i)) {
+                try {
+                    finalVariantImg = cloudinaryService.upload(variantImageFiles.get(i));
+                }catch (IOException e) {
+                    throw new RuntimeException("Upload ảnh thất bại!", e);
+                }
+
+            } else {
+                // Giữ link cũ nếu có
+                if (v.getVariantImgDTO() != null && v.getVariantImgDTO().getExistingImg() != null && !v.getVariantImgDTO().getExistingImg().isEmpty()) {
+                    finalVariantImg = v.getVariantImgDTO().getExistingImg().get(0);
                 }
             }
-        }
 
-        // Gán ảnh mới vào DTO
-        for (ProductVariantUpdateDTO v : dto.getVariants()) {
-            if (variantImageUrls.containsKey(v.getVariantId())) {
-                v.setImg(variantImageUrls.get(v.getVariantId()));
+            v.setImg(finalVariantImg);
+
+            if (v.getVariantId() != 0 && v.getVariantId() > 0) {
+                productVariantRepository.updateVariant(v);
+            } else {
+                productVariantRepository.insertVariant(v, dto.getProductId());
             }
         }
 
-        // Gọi xử lý cập nhật logic trong Service (viết rồi ở updateProduct)
-        updateProduct(dto);
+        // ===== 3️⃣ Cập nhật bảng products =====
+
+        productRepository.updateProduct(dto);
     }
+
 
 
 }

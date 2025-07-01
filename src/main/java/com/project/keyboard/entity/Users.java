@@ -25,7 +25,7 @@ public class Users {
     @Column(name = "full_name")
     private String fullName;
 
-    private String status;
+    private boolean status;
     private String phone;
     private String address;
 

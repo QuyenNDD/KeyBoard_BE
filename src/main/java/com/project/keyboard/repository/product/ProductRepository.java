@@ -1,5 +1,6 @@
 package com.project.keyboard.repository.product;
 
+import com.project.keyboard.dto.request.ProductUpdateDTO;
 import com.project.keyboard.entity.Product;
 
 import java.util.List;
@@ -11,4 +12,5 @@ public interface ProductRepository {
     boolean softDeleteProductById(int id);
 
     void update(Product product);
+    void updateProduct(ProductUpdateDTO dto);
 }
