@@ -3,6 +3,7 @@ package com.project.keyboard.system.impl;
 import com.project.keyboard.dto.request.ProductRequestDTO;
 import com.project.keyboard.dto.request.ProductUpdateDTO;
 import com.project.keyboard.dto.request.ProductVariantUpdateDTO;
+import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
 import com.project.keyboard.entity.ProductCategory;
 import com.project.keyboard.entity.ProductVariant;
@@ -222,6 +223,9 @@ public class ProductServiceImpl implements ProductService {
         productRepository.updateProduct(dto);
     }
 
-
+    @Override
+    public List<TopSellingProductDTO> getTopSellingProduct(int limit){
+        return productRepository.getTopSellingProduct(limit);
+    }
 
 }

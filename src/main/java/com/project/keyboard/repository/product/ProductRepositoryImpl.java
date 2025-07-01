@@ -1,6 +1,7 @@
 package com.project.keyboard.repository.product;
 
 import com.project.keyboard.dto.request.ProductUpdateDTO;
+import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
 import com.project.keyboard.entity.ProductCategory;
 import com.project.keyboard.entity.ProductVariant;
@@ -143,6 +144,50 @@ public class ProductRepositoryImpl implements ProductRepository{
                     category.getCategoryId(),
                     dto.getImgs(),
                     dto.getProductId());
+        }catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public List<TopSellingProductDTO> getTopSellingProduct(int limit){
+        try {
+            String sql = """
+                SELECT 
+                    pv.product_id AS id,
+                    p.name,
+                    SUM(od.quantity) AS totalSold,
+                    SUBSTRING_INDEX(p.imgs, ';', 1) AS img
+                FROM
+                    order_details od
+                JOIN
+                    product_variants pv ON od.variant_id = pv.variant_id
+                JOIN
+                    products p ON pv.product_id = p.product_id
+                JOIN
+                    orders o ON od.order_id = o.order_id
+                WHERE
+                    o.status = 'Completed'
+                GROUP BY
+                    pv.product_id, p.name, p.imgs
+                ORDER BY
+                    totalSold DESC
+                LIMIT ?
+            """;
+
+            return jdbcTemplate.query(
+                    sql,
+                    new Object[]{limit},
+                    (rs, rowNum) -> {
+                        TopSellingProductDTO dto = new TopSellingProductDTO();
+                        dto.setId(rs.getInt("id"));
+                        dto.setName(rs.getString("name"));
+                        dto.setTotalSold(rs.getInt("totalSold"));
+                        dto.setImg(rs.getString("img"));
+                        return dto;
+                    }
+            );
         }catch (Exception e) {
             log.error(e.getMessage());
             throw e;

@@ -1,6 +1,7 @@
 package com.project.keyboard.repository.product;
 
 import com.project.keyboard.dto.request.ProductUpdateDTO;
+import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
 
 import java.util.List;
@@ -13,4 +14,5 @@ public interface ProductRepository {
 
     void update(Product product);
     void updateProduct(ProductUpdateDTO dto);
+    List<TopSellingProductDTO> getTopSellingProduct(int limit);
 }

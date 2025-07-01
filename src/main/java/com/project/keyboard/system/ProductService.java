@@ -2,6 +2,7 @@ package com.project.keyboard.system;
 
 import com.project.keyboard.dto.request.ProductRequestDTO;
 import com.project.keyboard.dto.request.ProductUpdateDTO;
+import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,4 +16,5 @@ public interface ProductService {
     void updateProductWithImages(ProductUpdateDTO dto, List<MultipartFile> productImages,
                                  Map<Integer, MultipartFile> variantImageFiles);
     void updateProduct(ProductUpdateDTO dto);
+    List<TopSellingProductDTO> getTopSellingProduct(int limit);
 }

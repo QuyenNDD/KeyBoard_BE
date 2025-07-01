@@ -7,6 +7,7 @@ import com.project.keyboard.dto.request.ProductUpdateDTO;
 import com.project.keyboard.dto.request.ProductVariantRequestDTO;
 import com.project.keyboard.dto.request.ProductVariantUpdateDTO;
 import com.project.keyboard.dto.response.api.ApiResponse;
+import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
 import com.project.keyboard.system.ProductService;
 import com.project.keyboard.system.cloudinary.CloudinaryService;
@@ -149,6 +150,17 @@ public class ProductController {
         }
     }
 
-
-
+    @GetMapping("/topSellingProduct")
+    public ResponseEntity<ApiResponse<List<TopSellingProductDTO>>> getTopSellingProduct(@RequestParam(defaultValue = "3") int limit){
+        try {
+            List<TopSellingProductDTO> list = productService.getTopSellingProduct(limit);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Lấy danh sách sản phẩm bán chạy thành công", 200, "success", list, null)
+            );
+        }catch (Exception e){
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Lấy danh sách sản phẩm bán chạy thất bại", 500, "error", null, e.getMessage())
+            );
+        }
+    }
 }
