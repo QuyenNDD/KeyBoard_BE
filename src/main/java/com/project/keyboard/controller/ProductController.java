@@ -7,6 +7,7 @@ import com.project.keyboard.dto.request.ProductUpdateDTO;
 import com.project.keyboard.dto.request.ProductVariantRequestDTO;
 import com.project.keyboard.dto.request.ProductVariantUpdateDTO;
 import com.project.keyboard.dto.response.api.ApiResponse;
+import com.project.keyboard.dto.response.product.ProductResponeDTO;
 import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
 import com.project.keyboard.system.ProductService;
@@ -31,9 +32,9 @@ public class ProductController {
     private CloudinaryService cloudinaryService;
 
     @GetMapping("/getListProduct")
-    public ResponseEntity<ApiResponse<List<Product>>> getListProduct(){
+    public ResponseEntity<ApiResponse<List<ProductResponeDTO>>> getListProduct(){
         try {
-            List<Product> users = productService.getListProduct();
+            List<ProductResponeDTO> users = productService.getListProduct();
             return ResponseEntity.ok(
                     new ApiResponse<>("Lay san pham thanh cong", 200, "success", users, null)
             );
@@ -41,6 +42,19 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage())
             );
+        }
+    }
+
+    @GetMapping("/getProduct/{productId}")
+    public ResponseEntity<ApiResponse<ProductResponeDTO>> getProductById(@PathVariable int productId){
+        try {
+            ProductResponeDTO product = productService.getProductById(productId);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Lay san pham thanh cong", 200, "success", product, null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
         }
     }
 

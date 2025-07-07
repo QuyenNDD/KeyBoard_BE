@@ -11,7 +11,7 @@ public class ProductUpdateDTO {
     private String brand;
     private String description;
     private String category; // tên danh mục
-    private ProductImgDTO productImgDTO;
+    private ProductImgDTO productImg;
     private List<ProductVariantUpdateDTO> variants;
     private String imgs;
 }

@@ -1,5 +1,6 @@
 package com.project.keyboard.entity;
 
+import com.project.keyboard.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,9 +20,8 @@ public class Order {
     @Column(name = "order_id")
     private int orderId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private Users userId;
+    @Column(name = "user_id")
+    private int userId;
 
     @Column(name = "order_date", columnDefinition = "DATETIME")
     private LocalDateTime orderDate;
@@ -32,5 +32,7 @@ public class Order {
     private String phone;
     private String address;
     private String email;
-    private String status;
+
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
 }

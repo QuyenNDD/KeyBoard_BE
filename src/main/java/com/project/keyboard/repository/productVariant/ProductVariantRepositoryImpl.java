@@ -10,6 +10,8 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public class ProductVariantRepositoryImpl implements ProductVariantRepository{
     @Autowired
@@ -120,5 +122,16 @@ public class ProductVariantRepositoryImpl implements ProductVariantRepository{
             throw e;
         }
 
+    }
+
+    @Override
+    public List<ProductVariant> findByProductId(int productId) {
+        try {
+            String sql = "SELECT * FROM product_variants WHERE product_id = ?";
+            return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ProductVariant.class), productId);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
     }
 }

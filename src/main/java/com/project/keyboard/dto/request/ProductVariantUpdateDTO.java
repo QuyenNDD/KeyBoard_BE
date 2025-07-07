@@ -14,5 +14,5 @@ public class ProductVariantUpdateDTO {
     private String img;
     private String sku;
     private boolean deleted;
-    private VariantImgDTO variantImgDTO;
+    private VariantImgDTO variantImg;
 }

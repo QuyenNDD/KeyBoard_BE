@@ -1,5 +1,6 @@
 package com.project.keyboard.system.impl;
 
+import com.project.keyboard.dto.response.user.UserDTO;
 import com.project.keyboard.entity.Users;
 import com.project.keyboard.repository.user.UserRepository;
 import com.project.keyboard.system.UserService;
@@ -15,7 +16,7 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
 
     @Override
-    public List<Users> getListUser(){
+    public List<UserDTO> getListUser(){
         return userRepository.getListUser();
     }
 

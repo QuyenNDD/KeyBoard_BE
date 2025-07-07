@@ -9,5 +9,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProductCategoryDTO {
     private String name;
+    private String parentName;
     private String description;
 }

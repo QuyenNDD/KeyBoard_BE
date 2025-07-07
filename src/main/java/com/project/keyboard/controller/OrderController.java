@@ -1,16 +1,21 @@
 package com.project.keyboard.controller;
 
 import com.project.keyboard.dto.response.api.ApiResponse;
+import com.project.keyboard.dto.response.order.OrderResponse;
+import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.MonthlyOrderCount;
+import com.project.keyboard.dto.response.revenue.OrderRevenueDTO;
+import com.project.keyboard.dto.response.revenue.WeekOrderRevenueDTO;
+import com.project.keyboard.entity.Order;
+import com.project.keyboard.enums.OrderStatus;
 import com.project.keyboard.system.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -28,6 +33,102 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage())
             );
+        }
+    }
+
+    @GetMapping("/getListOrder")
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getListOrders() {
+        try{
+            List<OrderResponse> orders = orderService.getListOrders();
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Danh sach don hang", 200, "success", orders, null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/getOrderById/{orderId}")
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable int orderId) {
+        try{
+            OrderResponse order = orderService.getOrderById(orderId);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Chi tiet don hang", 200, "success", order, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    @PutMapping("/updateOrderStatus/{orderId}")
+    public ResponseEntity<ApiResponse<Void>> updateOrderStatus(@PathVariable int orderId, @RequestParam OrderStatus status) {
+        try{
+            orderService.setOrderStatus(orderId, status);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Cập nhật trạng thái đơn hàng thành công", 200, "success", null, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/by-day")
+    public ResponseEntity<ApiResponse<DayOrderRevenueDTO>> getRevenueByDay(
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            DayOrderRevenueDTO result = orderService.getDayOrderRevenue(date);
+            return ResponseEntity.ok(new ApiResponse<>("Lấy thống kê theo ngày thành công", 200, "success", result, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Lỗi thống kê ngày", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    /**
+     * Thống kê doanh thu theo THÁNG cụ thể
+     */
+    @GetMapping("/by-month")
+    public ResponseEntity<ApiResponse<OrderRevenueDTO>> getRevenueByMonth(
+            @RequestParam("year") int year,
+            @RequestParam("month") int month) {
+        try {
+            OrderRevenueDTO result = orderService.getRevenueByMonth(year, month);
+            return ResponseEntity.ok(new ApiResponse<>("Lấy thống kê theo tháng thành công", 200, "success", result, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Lỗi thống kê tháng", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    /**
+     * Thống kê doanh thu theo NĂM
+     */
+    @GetMapping("/by-year")
+    public ResponseEntity<ApiResponse<OrderRevenueDTO>> getRevenueByYear(
+            @RequestParam("year") int year) {
+        try {
+            OrderRevenueDTO result = orderService.getRevenueByYear(year);
+            return ResponseEntity.ok(new ApiResponse<>("Lấy thống kê theo năm thành công", 200, "success", result, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Lỗi thống kê năm", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    /**
+     * Thống kê doanh thu theo TUẦN (theo khoảng ngày)
+     */
+    @GetMapping("/by-week")
+    public ResponseEntity<ApiResponse<List<WeekOrderRevenueDTO>>> getRevenueByWeek(
+            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        try {
+            List<WeekOrderRevenueDTO> result = orderService.getRevenueByWeek(start, end);
+            return ResponseEntity.ok(new ApiResponse<>("Lấy thống kê theo tuần thành công", 200, "success", result, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Lỗi thống kê tuần", 500, "error", null, e.getMessage()));
         }
     }
 

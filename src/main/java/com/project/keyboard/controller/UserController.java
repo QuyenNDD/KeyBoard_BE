@@ -1,6 +1,7 @@
 package com.project.keyboard.controller;
 
 import com.project.keyboard.dto.response.api.ApiResponse;
+import com.project.keyboard.dto.response.user.UserDTO;
 import com.project.keyboard.entity.Users;
 import com.project.keyboard.system.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +18,9 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/getListUser")
-    public ResponseEntity<ApiResponse<List<Users>>> getListUser(){
+    public ResponseEntity<ApiResponse<List<UserDTO>>> getListUser(){
         try {
-            List<Users> users = userService.getListUser();
+            List<UserDTO> users = userService.getListUser();
             return ResponseEntity.ok(
                     new ApiResponse<>("Lấy danh sách người dùng thành công", 200, "success", users, null)
             );

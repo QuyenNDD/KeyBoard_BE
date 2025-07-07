@@ -1,5 +1,6 @@
 package com.project.keyboard.repository.user;
 
+import com.project.keyboard.dto.response.user.UserDTO;
 import com.project.keyboard.entity.Users;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,10 +20,23 @@ public class UserRepositoryImpl implements UserRepository{
     protected Log log = LogFactory.getLog(getClass());
 
     @Override
-    public List<Users> getListUser(){
+    public List<UserDTO> getListUser(){
         try {
-            String query = "SELECT * FROM users where user_id != 1";
-            return jdbcTemplate.query(query, BeanPropertyRowMapper.newInstance(Users.class));
+            String sql = "SELECT " +
+                    "user_id, username, email, full_name, phone, address, status, created_at" +
+                    " FROM users where user_id != 1";
+            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                UserDTO dto = new UserDTO();
+                dto.setId(rs.getInt("user_id"));
+                dto.setUsername(rs.getString("username"));
+                dto.setEmail(rs.getString("email"));
+                dto.setFullName(rs.getString("full_name"));
+                dto.setPhone(rs.getString("phone"));
+                dto.setAddress(rs.getString("address"));
+                dto.setStatus(rs.getBoolean("status"));
+                dto.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                return dto;
+            });
         }catch (Exception e){
             log.error(e.getMessage());
             throw e;

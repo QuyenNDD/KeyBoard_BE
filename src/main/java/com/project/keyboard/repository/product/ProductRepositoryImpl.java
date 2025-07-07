@@ -40,8 +40,42 @@ public class ProductRepositoryImpl implements ProductRepository{
     @Override
     public List<Product> getListProduct(){
         try{
-            String query = "SELECT * FROM products";
-            return jdbcTemplate.query(query, BeanPropertyRowMapper.newInstance(Product.class));
+            String sql = """
+        SELECT 
+            p.product_id,
+            p.name,
+            p.brand,
+            p.min_price,
+            p.description,
+            p.imgs,
+            pc.category_id,
+            pc.name AS category_name,
+            pc.description AS category_description
+        FROM 
+            products p
+        LEFT JOIN 
+            product_categories pc ON p.category_id = pc.category_id
+    """;
+
+            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                Product product = new Product();
+                product.setProductId(rs.getInt("product_id"));
+                product.setName(rs.getString("name"));
+                product.setBrand(rs.getString("brand"));
+                product.setMinPrice(rs.getBigDecimal("min_price"));
+                product.setDescription(rs.getString("description"));
+                product.setImgs(rs.getString("imgs"));
+
+                int catId = rs.getInt("category_id");
+                if (catId != 0) {
+                    ProductCategory category = new ProductCategory();
+                    category.setCategoryId(catId);
+                    category.setName(rs.getString("category_name"));
+                    category.setDescription(rs.getString("category_description"));
+                    product.setCategory(category);
+                }
+                return product;
+            });
         }catch (Exception e){
             log.error(e.getMessage());
             throw e;
@@ -189,6 +223,57 @@ public class ProductRepositoryImpl implements ProductRepository{
                     }
             );
         }catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public Product findProductById(int id){
+        try {
+            String sql = """
+            SELECT 
+                p.product_id,
+                p.name,
+                p.brand,
+                p.min_price,
+                p.description,
+                p.imgs,
+                pc.category_id,
+                pc.name AS category_name,
+                pc.description AS category_description
+            FROM 
+                products p
+            LEFT JOIN 
+                product_categories pc ON p.category_id = pc.category_id
+            WHERE 
+                p.product_id = ?
+        """;
+
+            return jdbcTemplate.queryForObject(sql, new Object[]{id}, (rs, rowNum) -> {
+                Product product = new Product();
+                product.setProductId(rs.getInt("product_id"));
+                product.setName(rs.getString("name"));
+                product.setBrand(rs.getString("brand"));
+                product.setMinPrice(rs.getBigDecimal("min_price"));
+                product.setDescription(rs.getString("description"));
+                product.setImgs(rs.getString("imgs"));
+
+                int catId = rs.getInt("category_id");
+                if (catId != 0) {
+                    ProductCategory category = new ProductCategory();
+                    category.setCategoryId(catId);
+                    category.setName(rs.getString("category_name"));
+                    category.setDescription(rs.getString("category_description"));
+                    product.setCategory(category);
+                }
+
+                return product;
+            });
+
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        } catch (Exception e) {
             log.error(e.getMessage());
             throw e;
         }

@@ -1,11 +1,19 @@
 package com.project.keyboard.system.impl;
 
+import com.project.keyboard.dto.response.order.OrderResponse;
+import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.MonthlyOrderCount;
+import com.project.keyboard.dto.response.revenue.OrderRevenueDTO;
+import com.project.keyboard.dto.response.revenue.WeekOrderRevenueDTO;
+import com.project.keyboard.entity.Order;
+import com.project.keyboard.enums.OrderStatus;
 import com.project.keyboard.repository.order.OrderRepository;
 import com.project.keyboard.system.OrderService;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,5 +41,43 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return result;
+    }
+
+    @Override
+    public List<OrderResponse> getListOrders() {
+        return orderRepository.getListOrder();
+    }
+
+    @Override
+    public OrderResponse getOrderById(int orderId) {
+        return orderRepository.getOrderById(orderId);
+    }
+
+    @Override
+    public void setOrderStatus(int orderId, OrderStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("OrderStatus must not be null");
+        }
+        orderRepository.updateOrderStatus(orderId, status.name());
+    }
+
+    @Override
+    public DayOrderRevenueDTO getDayOrderRevenue(LocalDate date) {
+        return orderRepository.getRevenueByDay(date);
+    }
+
+    @Override
+    public OrderRevenueDTO getRevenueByMonth(int year, Integer month){
+        return orderRepository.getRevenueByMonth(year, month);
+    }
+
+    @Override
+    public OrderRevenueDTO getRevenueByYear(int year){
+        return orderRepository.getRevenueByYear(year);
+    }
+
+    @Override
+    public List<WeekOrderRevenueDTO> getRevenueByWeek(LocalDate start, LocalDate end){
+        return orderRepository.getRevenueByWeek(start, end);
     }
 }
