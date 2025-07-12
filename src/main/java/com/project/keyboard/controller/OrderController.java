@@ -2,6 +2,7 @@ package com.project.keyboard.controller;
 
 import com.project.keyboard.dto.response.api.ApiResponse;
 import com.project.keyboard.dto.response.order.OrderResponse;
+import com.project.keyboard.dto.response.page.PagedResponse;
 import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.MonthlyOrderCount;
 import com.project.keyboard.dto.response.revenue.OrderRevenueDTO;
@@ -9,6 +10,7 @@ import com.project.keyboard.dto.response.revenue.WeekOrderRevenueDTO;
 import com.project.keyboard.entity.Order;
 import com.project.keyboard.enums.OrderStatus;
 import com.project.keyboard.system.OrderService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -25,8 +27,13 @@ public class OrderController {
     private OrderService orderService;
 
     @GetMapping("/monthly-order-count")
-    public ResponseEntity<ApiResponse<List<Integer>>> getMonthlyOrderCount(@RequestParam int year) {
+    public ResponseEntity<ApiResponse<List<Integer>>> getMonthlyOrderCount(@RequestParam int year, HttpServletRequest request) {
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             List<Integer> monthlyOrderCount = orderService.getMonthlyOrderCount(year);
             return ResponseEntity.ok(new ApiResponse<>("Tong hop don hang 12 thang cua 1 nam", 200, "success", monthlyOrderCount, null));
         } catch (Exception e) {
@@ -37,9 +44,27 @@ public class OrderController {
     }
 
     @GetMapping("/getListOrder")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getListOrders() {
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getListOrders(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try{
-            List<OrderResponse> orders = orderService.getListOrders();
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
+            List<OrderResponse> orders = orderService.getListOrders(page, size);
+            int totalElements = orderService.countOrders();
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+
+            PagedResponse<OrderResponse> pagedResponse = new PagedResponse<>();
+            pagedResponse.setContent(orders);
+            pagedResponse.setTotalPages(totalPages);
+            pagedResponse.setTotalElements(totalElements);
+            pagedResponse.setSize(size);
+            pagedResponse.setPage(page);
+
             return ResponseEntity.ok(
                     new ApiResponse<>("Danh sach don hang", 200, "success", orders, null)
             );
@@ -49,9 +74,49 @@ public class OrderController {
         }
     }
 
+    @GetMapping("/getListOrderByExactDate")
+    public ResponseEntity<ApiResponse<PagedResponse<OrderResponse>>> getListOrdersByExactDate(
+            @RequestParam String date, // định dạng yyyy-MM-dd
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request) {
+        try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
+
+            List<OrderResponse> orders = orderService.getOrdersByExactDate(date, page, size);
+            int totalElements = orderService.countOrdersByExactDate(date);
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+
+            PagedResponse<OrderResponse> pagedResponse = new PagedResponse<>();
+            pagedResponse.setContent(orders);
+            pagedResponse.setTotalPages(totalPages);
+            pagedResponse.setTotalElements(totalElements);
+            pagedResponse.setSize(size);
+            pagedResponse.setPage(page);
+
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Danh sách đơn hàng ngày " + date, 200, "success", pagedResponse, null)
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage())
+            );
+        }
+    }
+
     @GetMapping("/getOrderById/{orderId}")
-    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable int orderId) {
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable int orderId, HttpServletRequest request) {
         try{
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             OrderResponse order = orderService.getOrderById(orderId);
             return ResponseEntity.ok(
                     new ApiResponse<>("Chi tiet don hang", 200, "success", order, null));
@@ -62,8 +127,13 @@ public class OrderController {
     }
 
     @PutMapping("/updateOrderStatus/{orderId}")
-    public ResponseEntity<ApiResponse<Void>> updateOrderStatus(@PathVariable int orderId, @RequestParam OrderStatus status) {
+    public ResponseEntity<ApiResponse<Void>> updateOrderStatus(@PathVariable int orderId, @RequestParam OrderStatus status, HttpServletRequest request) {
         try{
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             orderService.setOrderStatus(orderId, status);
             return ResponseEntity.ok(
                     new ApiResponse<>("Cập nhật trạng thái đơn hàng thành công", 200, "success", null, null));
@@ -75,8 +145,14 @@ public class OrderController {
 
     @GetMapping("/by-day")
     public ResponseEntity<ApiResponse<DayOrderRevenueDTO>> getRevenueByDay(
-            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            HttpServletRequest request) {
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             DayOrderRevenueDTO result = orderService.getDayOrderRevenue(date);
             return ResponseEntity.ok(new ApiResponse<>("Lấy thống kê theo ngày thành công", 200, "success", result, null));
         } catch (Exception e) {
@@ -91,8 +167,14 @@ public class OrderController {
     @GetMapping("/by-month")
     public ResponseEntity<ApiResponse<OrderRevenueDTO>> getRevenueByMonth(
             @RequestParam("year") int year,
-            @RequestParam("month") int month) {
+            @RequestParam("month") int month,
+            HttpServletRequest request) {
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             OrderRevenueDTO result = orderService.getRevenueByMonth(year, month);
             return ResponseEntity.ok(new ApiResponse<>("Lấy thống kê theo tháng thành công", 200, "success", result, null));
         } catch (Exception e) {
@@ -106,8 +188,14 @@ public class OrderController {
      */
     @GetMapping("/by-year")
     public ResponseEntity<ApiResponse<OrderRevenueDTO>> getRevenueByYear(
-            @RequestParam("year") int year) {
+            @RequestParam("year") int year,
+            HttpServletRequest request) {
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             OrderRevenueDTO result = orderService.getRevenueByYear(year);
             return ResponseEntity.ok(new ApiResponse<>("Lấy thống kê theo năm thành công", 200, "success", result, null));
         } catch (Exception e) {
@@ -122,8 +210,14 @@ public class OrderController {
     @GetMapping("/by-week")
     public ResponseEntity<ApiResponse<List<WeekOrderRevenueDTO>>> getRevenueByWeek(
             @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
+            HttpServletRequest request) {
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             List<WeekOrderRevenueDTO> result = orderService.getRevenueByWeek(start, end);
             return ResponseEntity.ok(new ApiResponse<>("Lấy thống kê theo tuần thành công", 200, "success", result, null));
         } catch (Exception e) {

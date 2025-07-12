@@ -5,6 +5,7 @@ import com.project.keyboard.dto.response.api.ApiResponse;
 import com.project.keyboard.dto.response.category.ProductCategoryDTO;
 import com.project.keyboard.entity.ProductCategory;
 import com.project.keyboard.system.ProductCategoryService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,8 +34,14 @@ public class ProductCategoryController {
     }
 
     @PostMapping("/createProductCategory")
-    public ResponseEntity<ApiResponse<Void>> createProductCategory(@RequestBody ProductCategoryRequestDTO dto){
+    public ResponseEntity<ApiResponse<Void>> createProductCategory(@RequestBody ProductCategoryRequestDTO dto,
+                                                                   HttpServletRequest request){
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             ProductCategory newProductCategory = productCategoryService.createCategory(dto);
             return ResponseEntity.ok(new ApiResponse<>("Tạo danh mục sản phẩm thành công", 200, "success", null, null));
         } catch (Exception e) {
@@ -45,8 +52,14 @@ public class ProductCategoryController {
     }
 
     @PutMapping("/updateProductCategory/{id}")
-    public ResponseEntity<ApiResponse<Void>> updateProductCategory(@RequestBody ProductCategoryRequestDTO dto, @PathVariable int id){
+    public ResponseEntity<ApiResponse<Void>> updateProductCategory(@RequestBody ProductCategoryRequestDTO dto, @PathVariable int id,
+                                                                   HttpServletRequest request){
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             ProductCategory productCategory = productCategoryService.updateCategory(dto, id);
             return ResponseEntity.ok(new ApiResponse<>("Cập nhật danh mục sản phẩm thành công", 200, "success", null, null));
         } catch (Exception e) {
@@ -57,8 +70,14 @@ public class ProductCategoryController {
     }
 
     @DeleteMapping("/deleteProductCategory/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteProductCategory(@PathVariable int id){
+    public ResponseEntity<ApiResponse<Void>> deleteProductCategory(@PathVariable int id,
+                                                                   HttpServletRequest request){
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             productCategoryService.deleteCategory(id);
             return ResponseEntity.ok(new ApiResponse<>("Xóa danh mục sản phẩm thành công", 200, "success", null, null));
         }catch (Exception e){

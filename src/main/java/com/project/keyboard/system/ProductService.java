@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 public interface ProductService {
-    List<ProductResponeDTO> getListProduct();
+    List<ProductResponeDTO> getListProduct(int page, int size);
+    int countProducts();
     Product createProduct(ProductRequestDTO productRequestDTO);
     boolean disableProduct(int productId);
     void updateProductWithImages(ProductUpdateDTO dto, List<MultipartFile> productImages,

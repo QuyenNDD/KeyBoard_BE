@@ -6,6 +6,7 @@ import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.MonthlyOrderCount;
 import com.project.keyboard.dto.response.revenue.OrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.WeekOrderRevenueDTO;
+import com.project.keyboard.dto.response.user.UserOrderResponse;
 import com.project.keyboard.entity.Order;
 import com.project.keyboard.enums.OrderStatus;
 import org.apache.commons.logging.Log;
@@ -54,12 +55,18 @@ public class OrderRepositoryImpl implements OrderRepository{
     }
 
     @Override
-    public List<OrderResponse> getListOrder(){
+    public List<OrderResponse> getListOrder(int page, int size){
         try{
-            String sql = "SELECT  o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email\n" +
-                    "\tfrom orders o\n" +
-                    "    join users u on o.user_id = u.user_id";
-            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            int offset = page * size;
+            String sql = """
+            SELECT o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+            FROM orders o
+            JOIN users u ON o.user_id = u.user_id
+            ORDER BY o.order_date DESC
+            LIMIT ? OFFSET ?
+            """;
+
+            return jdbcTemplate.query(sql, new Object[]{size, offset}, (rs, rowNum) -> {
                 OrderResponse order = new OrderResponse();
                 order.setId(rs.getInt("order_id"));
                 order.setFullName(rs.getString("full_name"));
@@ -75,6 +82,61 @@ public class OrderRepositoryImpl implements OrderRepository{
             log.error(e.getMessage());
             throw e;
         }
+    }
+
+    @Override
+    public int countOrders() {
+        String sql = "SELECT COUNT(*) FROM orders";
+        return jdbcTemplate.queryForObject(sql, Integer.class);
+    }
+
+    @Override
+    public List<OrderResponse> getOrdersByExactDate(String date, int page, int size) {
+        try {
+            int offset = page * size;
+
+            String sql = """
+        SELECT o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+        FROM orders o
+        JOIN users u ON o.user_id = u.user_id
+        WHERE DATE(o.order_date) = ?
+        ORDER BY o.order_date DESC
+        LIMIT ? OFFSET ?
+    """;
+
+            return jdbcTemplate.query(sql, new Object[]{date, size, offset}, (rs, rowNum) -> {
+                OrderResponse order = new OrderResponse();
+                order.setId(rs.getInt("order_id"));
+                order.setFullName(rs.getString("full_name"));
+                order.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
+                order.setTotalAmount(rs.getBigDecimal("total_amount"));
+                order.setStatus(OrderStatus.valueOf(rs.getString("status")));
+                order.setPhone(rs.getString("phone"));
+                order.setAddress(rs.getString("address"));
+                order.setEmail(rs.getString("email"));
+                return order;
+            });
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+
+    }
+
+    @Override
+    public int countOrdersByExactDate(String date) {
+        try {
+            String sql = """
+        SELECT COUNT(*)
+        FROM orders
+        WHERE DATE(order_date) = ?
+    """;
+            return jdbcTemplate.queryForObject(sql, new Object[]{date}, Integer.class);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+
     }
 
     @Override
@@ -284,5 +346,42 @@ public class OrderRepositoryImpl implements OrderRepository{
             throw e;
         }
 
+    }
+    @Override
+    public List<UserOrderResponse> getOrdersByUser(int userId, int page, int size){
+        try {
+            int offset = page * size;
+
+            String sql = """
+            SELECT order_id, address, total_amount, order_date, status
+            FROM orders
+            WHERE user_id = ?
+            ORDER BY order_date DESC
+            LIMIT ? OFFSET ?
+        """;
+
+            return jdbcTemplate.query(sql, new Object[]{userId, size, offset}, (rs, rowNum) -> {
+                UserOrderResponse dto = new UserOrderResponse();
+                dto.setId(rs.getInt("order_id"));
+                dto.setAddress(rs.getString("address"));
+                dto.setTotalAmount(rs.getBigDecimal("total_amount"));
+                dto.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
+                dto.setStatus(rs.getString("status"));
+                return dto;
+            });
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+    @Override
+    public int countOrdersByUser(int userId){
+        try {
+            String countSql = "SELECT COUNT(*) FROM orders WHERE user_id = ?";
+            return jdbcTemplate.queryForObject(countSql, new Object[]{userId}, Integer.class);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
     }
 }

@@ -3,7 +3,9 @@ package com.project.keyboard.controller;
 import com.project.keyboard.dto.response.api.ApiResponse;
 import com.project.keyboard.dto.response.cart.TotalCartDTO;
 import com.project.keyboard.system.CartService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,8 +21,13 @@ public class CartController {
     private CartService cartService;
 
     @GetMapping("/getTotalCart")
-    public ResponseEntity<ApiResponse<Map<String, List<TotalCartDTO>>>> getDashboardSummary() {
+    public ResponseEntity<ApiResponse<Map<String, List<TotalCartDTO>>>> getDashboardSummary(HttpServletRequest request) {
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             List<TotalCartDTO> carts = cartService.getTotalCart();
             Map<String, List<TotalCartDTO>> responseData = Map.of("totalCarts", carts);
 

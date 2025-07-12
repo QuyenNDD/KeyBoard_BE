@@ -1,10 +1,11 @@
 package com.project.keyboard.system.impl;
 
 import com.project.keyboard.dto.response.user.UserDTO;
+
 import com.project.keyboard.entity.Users;
 import com.project.keyboard.repository.user.UserRepository;
 import com.project.keyboard.system.UserService;
-import org.apache.catalina.User;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,8 +17,18 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
 
     @Override
-    public List<UserDTO> getListUser(){
-        return userRepository.getListUser();
+    public List<UserDTO> getListUser(int page, int size){
+        return userRepository.getListUser(page, size);
+    }
+
+    @Override
+    public UserDTO getUserDetail(int userId){
+        return userRepository.getUserDetail(userId);
+    }
+
+    @Override
+    public int countUsers(){
+        return userRepository.countUsers();
     }
 
     @Override

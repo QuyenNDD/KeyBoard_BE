@@ -31,4 +31,7 @@ public class Users {
 
     @Column(name = "create_at", columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
+
+    @Column(name = "is_admin")
+    private boolean isAdmin;
 }

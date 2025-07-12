@@ -36,8 +36,8 @@ public class ProductServiceImpl implements ProductService {
     private CloudinaryService cloudinaryService;
 
     @Override
-    public List<ProductResponeDTO> getListProduct(){
-        List<Product> products = productRepository.getListProduct();
+    public List<ProductResponeDTO> getListProduct(int page, int size){
+        List<Product> products = productRepository.getListProduct(page, size);
 
         List<ProductResponeDTO> result = new ArrayList<>();
 
@@ -86,6 +86,11 @@ public class ProductServiceImpl implements ProductService {
             result.add(dto);
         }
         return result;
+    }
+
+    @Override
+    public int countProducts(){
+        return productRepository.countProducts();
     }
 
     @Override

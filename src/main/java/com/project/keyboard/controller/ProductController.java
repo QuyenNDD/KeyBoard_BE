@@ -7,11 +7,13 @@ import com.project.keyboard.dto.request.ProductUpdateDTO;
 import com.project.keyboard.dto.request.ProductVariantRequestDTO;
 import com.project.keyboard.dto.request.ProductVariantUpdateDTO;
 import com.project.keyboard.dto.response.api.ApiResponse;
+import com.project.keyboard.dto.response.page.PagedResponse;
 import com.project.keyboard.dto.response.product.ProductResponeDTO;
 import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
 import com.project.keyboard.system.ProductService;
 import com.project.keyboard.system.cloudinary.CloudinaryService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,11 +34,23 @@ public class ProductController {
     private CloudinaryService cloudinaryService;
 
     @GetMapping("/getListProduct")
-    public ResponseEntity<ApiResponse<List<ProductResponeDTO>>> getListProduct(){
+    public ResponseEntity<ApiResponse<PagedResponse<ProductResponeDTO>>> getListProduct(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
         try {
-            List<ProductResponeDTO> users = productService.getListProduct();
+            List<ProductResponeDTO> products = productService.getListProduct(page, size);
+            int totalElements = productService.countProducts();
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+
+            PagedResponse<ProductResponeDTO> pagedResponse = new PagedResponse<>();
+            pagedResponse.setContent(products);
+            pagedResponse.setTotalPages(totalPages);
+            pagedResponse.setTotalElements(totalElements);
+            pagedResponse.setSize(size);
+            pagedResponse.setPage(page);
+
             return ResponseEntity.ok(
-                    new ApiResponse<>("Lay san pham thanh cong", 200, "success", users, null)
+                    new ApiResponse<>("Lay san pham thanh cong", 200, "success", pagedResponse, null)
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
@@ -66,6 +80,11 @@ public class ProductController {
             MultipartHttpServletRequest request
     ) {
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             ObjectMapper mapper = new ObjectMapper();
 
             // Parse product
@@ -114,8 +133,14 @@ public class ProductController {
 
 
     @PutMapping("/disableProduct/{productId}")
-    public ResponseEntity<ApiResponse<Boolean>> disableProduct(@PathVariable int productId){
+    public ResponseEntity<ApiResponse<Boolean>> disableProduct(@PathVariable int productId,
+                                                               HttpServletRequest request){
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             boolean ok = productService.disableProduct(productId);
             if (ok){
                 return ResponseEntity.ok(
@@ -138,6 +163,11 @@ public class ProductController {
             MultipartHttpServletRequest request
     ) {
         try {
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
             ObjectMapper mapper = new ObjectMapper();
             ProductUpdateDTO dto = mapper.readValue(productJson, ProductUpdateDTO.class);
 

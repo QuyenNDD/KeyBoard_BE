@@ -2,6 +2,7 @@ package com.project.keyboard.dto.response.user;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,4 +15,7 @@ public class UserDTO {
     private String address;
     private boolean status;
     private LocalDateTime createdAt;
+
+    private int totalOrders;
+    private BigDecimal totalSpent;
 }

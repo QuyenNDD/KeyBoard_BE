@@ -38,8 +38,9 @@ public class ProductRepositoryImpl implements ProductRepository{
     protected Log log = LogFactory.getLog(getClass());
 
     @Override
-    public List<Product> getListProduct(){
+    public List<Product> getListProduct(int page, int size){
         try{
+            int offset = page * size;
             String sql = """
         SELECT 
             p.product_id,
@@ -55,9 +56,11 @@ public class ProductRepositoryImpl implements ProductRepository{
             products p
         LEFT JOIN 
             product_categories pc ON p.category_id = pc.category_id
+        ORDER BY p.product_id
+        LIMIT ? OFFSET ?
     """;
 
-            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            return jdbcTemplate.query(sql, new Object[]{size, offset}, (rs, rowNum) -> {
                 Product product = new Product();
                 product.setProductId(rs.getInt("product_id"));
                 product.setName(rs.getString("name"));
@@ -76,6 +79,17 @@ public class ProductRepositoryImpl implements ProductRepository{
                 }
                 return product;
             });
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public int countProducts(){
+        try{
+            String sql = "SELECT COUNT(*) FROM products";
+            return jdbcTemplate.queryForObject(sql, Integer.class);
         }catch (Exception e){
             log.error(e.getMessage());
             throw e;
