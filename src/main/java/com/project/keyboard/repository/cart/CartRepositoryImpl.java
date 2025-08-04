@@ -36,4 +36,38 @@ public class CartRepositoryImpl implements CartRepository{
             throw e;
         }
     }
+
+    @Override
+    public int addToCart(int userId, int variantId, int quantity) {
+        try {
+            String sql = "INSERT INTO cart (user_id, variant_id, quantity) VALUES (?, ?, ?)";
+            return jdbcTemplate.update(sql, userId, variantId, quantity);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public boolean isItemExist(int userId, int variantId) {
+        try{
+            String sql = "SELECT COUNT(*) FROM cart WHERE user_id = ? AND variant_id = ?;";
+            Integer count = jdbcTemplate.queryForObject(sql, new Object[]{userId, variantId}, Integer.class);
+            return count > 0 && count != null;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public int updateQuantity(int userId, int variantId, int quantity) {
+        try {
+            String sql = "UPDATE cart SET quantity = quantity + ? WHERE user_id = ? AND variant_id = ?";
+            return jdbcTemplate.update(sql, quantity, userId, variantId);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
 }

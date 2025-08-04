@@ -1,5 +1,7 @@
 package com.project.keyboard.controller;
 
+import com.cloudinary.Api;
+import com.project.keyboard.dto.request.AddToCartRequest;
 import com.project.keyboard.dto.response.api.ApiResponse;
 import com.project.keyboard.dto.response.cart.TotalCartDTO;
 import com.project.keyboard.system.CartService;
@@ -7,9 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -52,4 +52,23 @@ public class CartController {
         }
     }
 
+
+    // Thêm vào giỏ hàng có đăng nhập
+    @PostMapping("/add")
+    public ResponseEntity<ApiResponse<String>> addToCart(
+        @RequestBody AddToCartRequest add,
+        HttpServletRequest request) {
+        try {
+            Integer userId = (Integer) request.getAttribute("userId");
+            if (userId == null){
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new  ApiResponse<>("Chưa đăng nhập", 401, "unauthorized", null, null));
+            }
+            String message =  cartService.addToCart(userId, add.getVariantId(), add.getQuantity());
+            return ResponseEntity.ok(new ApiResponse<>(message, 200, "success", null, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
 }

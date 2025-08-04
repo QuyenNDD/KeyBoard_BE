@@ -70,10 +70,12 @@ public class AuthServiceImpl implements AuthService {
         Claims claims = jwtTokenUtil.validateToken(refreshToken);
         String username = claims.getSubject();
         boolean isAdmin = claims.get("isAdmin", Boolean.class);
+        Integer userId = claims.get("userId", Integer.class);
 
         Users user = new Users();
         user.setUsername(username);
         user.setAdmin(isAdmin);
+        user.setUserId(userId);
 
         String accessToken = jwtTokenUtil.generateAccessToken(user);
         String newRefreshToken = jwtTokenUtil.generateRefreshToken(user);

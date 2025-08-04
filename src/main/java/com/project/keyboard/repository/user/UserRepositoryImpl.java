@@ -136,7 +136,7 @@ public class UserRepositoryImpl implements UserRepository{
     public void updateStatusUser(Users users){
         try{
             String query = "UPDATE users SET status = ? WHERE user_id = ?";
-            jdbcTemplate.queryForObject(query, BeanPropertyRowMapper.newInstance(Users.class), users.isStatus(), users.getUserId());
+            jdbcTemplate.update(query, users.isStatus(), users.getUserId());
         }catch (Exception e){
             log.error(e.getMessage());
             throw e;

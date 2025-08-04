@@ -49,9 +49,15 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.getListOrder(page, size);
     }
 
+
     @Override
     public int countOrders(){
         return orderRepository.countOrders();
+    }
+
+    @Override
+    public List<OrderResponse> getOrderByUser(int userId, int page, int size){
+        return orderRepository.getOrdersByUserId(userId, page, size);
     }
 
     @Override
@@ -103,5 +109,10 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public int countOrdersByUser(int userId){
         return orderRepository.countOrdersByUser(userId);
+    }
+
+    @Override
+    public OrderResponse getOrderByIdForUser(int orderId, Integer userId){
+        return orderRepository.getOrderByIdForUser(orderId, userId);
     }
 }

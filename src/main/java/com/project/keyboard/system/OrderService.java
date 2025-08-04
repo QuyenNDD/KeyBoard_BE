@@ -17,6 +17,7 @@ public interface OrderService {
     List<Integer> getMonthlyOrderCount(int year);
     List<OrderResponse> getListOrders(int page, int size);
     int countOrders();
+    List<OrderResponse> getOrderByUser(int userId, int page, int size);
     List<OrderResponse> getOrdersByExactDate(String date, int page, int size);
     int countOrdersByExactDate(String date);
     OrderResponse getOrderById(int id);
@@ -27,4 +28,6 @@ public interface OrderService {
     List<WeekOrderRevenueDTO> getRevenueByWeek(LocalDate start, LocalDate end);
     List<UserOrderResponse> getOrdersByUser(int userId, int page, int size);
     int countOrdersByUser(int userId);
+
+    OrderResponse getOrderByIdForUser(int orderId, Integer userId);
 }

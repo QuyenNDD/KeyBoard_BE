@@ -91,6 +91,37 @@ public class OrderRepositoryImpl implements OrderRepository{
     }
 
     @Override
+    public List<OrderResponse> getOrdersByUserId(int userId, int page, int size){
+        try {
+            int offset = page * size;
+            String sql = """
+            SELECT o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+            FROM orders o
+            JOIN users u ON o.user_id = u.user_id
+            WHERE o.user_id = ?
+            ORDER BY o.order_date DESC
+            LIMIT ? OFFSET ?
+        """;
+
+            return jdbcTemplate.query(sql, new Object[]{userId, size, offset}, (rs, rowNum) -> {
+                OrderResponse order = new OrderResponse();
+                order.setId(rs.getInt("order_id"));
+                order.setFullName(rs.getString("full_name"));
+                order.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
+                order.setTotalAmount(rs.getBigDecimal("total_amount"));
+                order.setStatus(OrderStatus.valueOf(rs.getString("status")));
+                order.setPhone(rs.getString("phone"));
+                order.setAddress(rs.getString("address"));
+                order.setEmail(rs.getString("email"));
+                return order;
+            });
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
     public List<OrderResponse> getOrdersByExactDate(String date, int page, int size) {
         try {
             int offset = page * size;
@@ -208,6 +239,80 @@ public class OrderRepositoryImpl implements OrderRepository{
             throw e;
         }
     }
+
+    @Override
+    public OrderResponse getOrderByIdForUser(int id, int userId) {
+        try {
+            String sql = """
+            SELECT o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+            FROM orders o
+            JOIN users u ON o.user_id = u.user_id
+            WHERE o.order_id = ? AND o.user_id = ?
+        """;
+
+            OrderResponse dto = jdbcTemplate.queryForObject(
+                    sql,
+                    new Object[]{id, userId},
+                    (rs, rowNum) -> {
+                        OrderResponse o = new OrderResponse();
+                        o.setId(rs.getInt("order_id"));
+                        o.setFullName(rs.getString("full_name"));
+                        o.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
+                        o.setTotalAmount(rs.getBigDecimal("total_amount"));
+                        o.setPhone(rs.getString("phone"));
+                        o.setAddress(rs.getString("address"));
+                        o.setEmail(rs.getString("email"));
+                        o.setStatus(OrderStatus.valueOf(rs.getString("status")));
+                        return o;
+                    }
+            );
+
+            if (dto == null) return null;
+
+            // Lấy danh sách chi tiết sản phẩm trong đơn
+            String detailSql = """
+            SELECT 
+              od.variant_id,
+              p.name AS product_name,
+              pv.color,
+              pv.img,
+              od.quantity,
+              od.price
+            FROM 
+              order_details od
+            JOIN 
+              product_variants pv ON pv.variant_id = od.variant_id
+            JOIN 
+              products p ON pv.product_id = p.product_id
+            WHERE 
+              od.order_id = ?
+        """;
+
+            List<OrderDetailResponse> details = jdbcTemplate.query(
+                    detailSql,
+                    new Object[]{id},
+                    (rs, rowNum) -> {
+                        OrderDetailResponse d = new OrderDetailResponse();
+                        d.setVariantId(rs.getInt("variant_id"));
+                        d.setProductName(rs.getString("product_name"));
+                        d.setColor(rs.getString("color"));
+                        d.setImg(rs.getString("img"));
+                        d.setQuantity(rs.getInt("quantity"));
+                        d.setPrice(rs.getBigDecimal("price"));
+                        return d;
+                    }
+            );
+
+            dto.setOrderDetails(details);
+            return dto;
+        } catch (EmptyResultDataAccessException e) {
+            return null; // Không có đơn hàng hoặc không thuộc user
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
 
     @Override
     public void updateOrderStatus(int orderId, String status){

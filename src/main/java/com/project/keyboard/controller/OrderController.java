@@ -57,14 +57,42 @@ public class OrderController {
             List<OrderResponse> orders = orderService.getListOrders(page, size);
             int totalElements = orderService.countOrders();
             int totalPages = (int) Math.ceil((double) totalElements / size);
-
             PagedResponse<OrderResponse> pagedResponse = new PagedResponse<>();
             pagedResponse.setContent(orders);
             pagedResponse.setTotalPages(totalPages);
             pagedResponse.setTotalElements(totalElements);
             pagedResponse.setSize(size);
             pagedResponse.setPage(page);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Danh sach don hang", 200, "success", orders, null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
 
+    @GetMapping("/getListOrder/user")
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getListUserOrders(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try{
+            Integer userId = (Integer) request.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>("Bạn chưa đăng nhập", 401, "unauthorized", null, null));
+            }
+
+            List<OrderResponse> orders = orderService.getOrderByUser(userId, page, size);
+            int totalElements = orderService.countOrdersByUser(userId);
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+            PagedResponse<OrderResponse> pagedResponse = new PagedResponse<>();
+            pagedResponse.setContent(orders);
+            pagedResponse.setTotalPages(totalPages);
+            pagedResponse.setTotalElements(totalElements);
+            pagedResponse.setSize(size);
+            pagedResponse.setPage(page);
             return ResponseEntity.ok(
                     new ApiResponse<>("Danh sach don hang", 200, "success", orders, null)
             );
@@ -123,6 +151,28 @@ public class OrderController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/getOrderById/user/{orderId}")
+    public ResponseEntity<ApiResponse<OrderResponse>> getUserOrderById(@PathVariable int orderId, HttpServletRequest request) {
+        try {
+            Integer userId = (Integer) request.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>("Người dùng chưa đăng nhập", 401, "unauthorized", null, null));
+            }
+
+            OrderResponse order = orderService.getOrderByIdForUser(orderId, userId);
+            if (order == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập đơn hàng này", 403, "forbidden", null, null));
+            }
+
+            return ResponseEntity.ok(new ApiResponse<>("Chi tiết đơn hàng", 200, "success", order, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
         }
     }
 

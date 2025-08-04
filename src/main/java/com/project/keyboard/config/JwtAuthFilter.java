@@ -27,11 +27,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 Claims claims = jwtTokenUtil.validateToken(token);
                 String username = claims.getSubject();
                 boolean isAdmin = claims.get("isAdmin", Boolean.class);
+                Integer userId = claims.get("userId", Integer.class);
 
                 // Gán thông tin user vào request attribute
                 request.setAttribute("username", username);
                 request.setAttribute("isAdmin", isAdmin);
-
+                request.setAttribute("userId", userId);
                 // Hoặc gán vào SecurityContext nếu dùng Spring Security fully
                 // (Optional ở đây)
 

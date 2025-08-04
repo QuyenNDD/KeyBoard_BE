@@ -15,9 +15,11 @@ public interface OrderRepository {
     List<MonthlyOrderCount> getMonthlyOrderCount(int year);
     List<OrderResponse> getListOrder(int page, int size);
     int countOrders();
+    List<OrderResponse> getOrdersByUserId(int userId, int page, int size);
     List<OrderResponse> getOrdersByExactDate(String date, int page, int size);
     int countOrdersByExactDate(String date);
     OrderResponse getOrderById(int id);
+    OrderResponse getOrderByIdForUser(int id, int userId);
     void updateOrderStatus(int id, String status);
     DayOrderRevenueDTO getRevenueByDay(LocalDate date);
     OrderRevenueDTO getRevenueByMonth(int year, Integer month);
