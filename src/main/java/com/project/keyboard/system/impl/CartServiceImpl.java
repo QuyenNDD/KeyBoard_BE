@@ -1,5 +1,6 @@
 package com.project.keyboard.system.impl;
 
+import com.project.keyboard.dto.response.cart.CartUserResponse;
 import com.project.keyboard.dto.response.cart.TotalCartDTO;
 import com.project.keyboard.entity.Users;
 import com.project.keyboard.repository.cart.CartRepository;
@@ -37,5 +38,15 @@ public class CartServiceImpl implements CartService {
             cartRepository.addToCart(userId, variantId, quantity);
             return "Item added to cart";
         }
+    }
+
+    @Override
+    public List<CartUserResponse> getListCartBelongUser(int userId, int page, int size){
+        return cartRepository.getListCartBelongUser(userId, page, size);
+    }
+
+    @Override
+    public int countCartBelongUser(int userId){
+        return cartRepository.countCartBelongUser(userId);
     }
 }

@@ -1,5 +1,6 @@
 package com.project.keyboard.system;
 
+import com.project.keyboard.dto.request.OrderResquest;
 import com.project.keyboard.dto.response.order.OrderResponse;
 import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.MonthlyOrderCount;
@@ -30,4 +31,5 @@ public interface OrderService {
     int countOrdersByUser(int userId);
 
     OrderResponse getOrderByIdForUser(int orderId, Integer userId);
+    String placeOrder(int userId, OrderResquest orderResquest);
 }

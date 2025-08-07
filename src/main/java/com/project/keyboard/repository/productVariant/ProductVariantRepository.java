@@ -15,4 +15,5 @@ public interface ProductVariantRepository {
     void insertVariant(ProductVariantUpdateDTO v, int productId);
     void deleteVariantById(int variantId);
     List<ProductVariant> findByProductId(int productId);
+    Integer getStockByVariantId(int variantId);
 }

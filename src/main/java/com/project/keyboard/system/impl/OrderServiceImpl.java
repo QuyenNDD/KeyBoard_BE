@@ -1,5 +1,8 @@
 package com.project.keyboard.system.impl;
 
+import com.project.keyboard.dto.request.CartItemRequest;
+import com.project.keyboard.dto.request.OrderItemRequest;
+import com.project.keyboard.dto.request.OrderResquest;
 import com.project.keyboard.dto.response.order.OrderResponse;
 import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.MonthlyOrderCount;
@@ -7,13 +10,19 @@ import com.project.keyboard.dto.response.revenue.OrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.WeekOrderRevenueDTO;
 import com.project.keyboard.dto.response.user.UserOrderResponse;
 import com.project.keyboard.entity.Order;
+import com.project.keyboard.entity.ProductVariant;
+import com.project.keyboard.entity.Users;
 import com.project.keyboard.enums.OrderStatus;
+import com.project.keyboard.repository.cart.CartRepository;
 import com.project.keyboard.repository.order.OrderRepository;
+import com.project.keyboard.repository.productVariant.ProductVariantRepository;
+import com.project.keyboard.repository.user.UserRepository;
 import com.project.keyboard.system.OrderService;
 import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +33,15 @@ import java.util.Map;
 public class OrderServiceImpl implements OrderService {
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
+    private ProductVariantRepository productVariantRepository;
 
     @Override
     public List<Integer> getMonthlyOrderCount(int year) {
@@ -114,5 +132,48 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse getOrderByIdForUser(int orderId, Integer userId){
         return orderRepository.getOrderByIdForUser(orderId, userId);
+    }
+
+    @Override
+    public String placeOrder(int userId, OrderResquest resquest){
+        Users user = userRepository.findById(userId);
+        if (!user.isStatus()){
+            return "Người dùng đã bị khóa tài khoản";
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        List<CartItemRequest> items = new ArrayList<>();
+        for (OrderItemRequest item : resquest.getItems()) {
+            if (!cartRepository.isCartBelongToUser(userId, item.getCartId())){
+                return "Bạn không có quyền";
+            }
+            CartItemRequest cartItem = orderRepository.getCartItemById(item.getCartId());
+
+            cartItem.setQuantity(item.getQuantity());
+            BigDecimal price = orderRepository.getPriceByVariantId(cartItem.getVariantId());
+
+            Integer stock = productVariantRepository.getStockByVariantId(cartItem.getVariantId());
+            if (stock == null){
+                stock = 0;
+            }
+
+            if (stock < cartItem.getQuantity()){
+                ProductVariant productVariant = productVariantRepository.findById(cartItem.getVariantId());
+                return "Sản phẩm " + productVariant.getProduct().getName() + " " + productVariant.getColor() + " không đủ số lượng. Còn lại " + stock + " sản phẩm";
+            }
+
+            BigDecimal itemsTotal = price.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            total = total.add(itemsTotal);
+
+            items.add(cartItem);
+        }
+        int orderId = orderRepository.insertOrder(userId, total, resquest.getPhone(), resquest.getAddress(), resquest.getEmail());
+
+        for (CartItemRequest item : items){
+            BigDecimal price = orderRepository.getPriceByVariantId(item.getVariantId());
+            orderRepository.insertOrderDetail(orderId, item.getVariantId(), item.getQuantity(), price);
+            orderRepository.deleteCartItem(item.getCartId());
+        }
+        return "Đặt hàng thành công";
     }
 }

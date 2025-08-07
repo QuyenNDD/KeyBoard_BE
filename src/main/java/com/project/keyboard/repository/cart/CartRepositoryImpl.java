@@ -1,5 +1,6 @@
 package com.project.keyboard.repository.cart;
 
+import com.project.keyboard.dto.response.cart.CartUserResponse;
 import com.project.keyboard.dto.response.cart.TotalCartDTO;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -65,6 +66,68 @@ public class CartRepositoryImpl implements CartRepository{
         try {
             String sql = "UPDATE cart SET quantity = quantity + ? WHERE user_id = ? AND variant_id = ?";
             return jdbcTemplate.update(sql, quantity, userId, variantId);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public boolean isCartBelongToUser(int userId, int cartId){
+        try {
+            String sql = "SELECT COUNT(*) FROM cart WHERE cart_id = ? AND user_id = ?";
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, cartId, userId);
+            return count != null && count > 0;
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public List<CartUserResponse> getListCartBelongUser(int userId, int page, int size){
+        try {
+            int offset = page * size;
+            String sql = """
+                    SELECT  c.cart_id,
+                            p.name,
+                            pv.color,
+                            p.brand,
+                            pv.img,
+                            pv.price,
+                            c.quantity,
+                            c.added_at
+                    FROM cart c
+                    JOIN product_variants pv ON pv.variant_id = c.variant_id
+                    JOIN products p ON p.product_id = pv.product_id
+                    WHERE c.user_id = ?
+                    ORDER BY c.added_at DESC
+                    LIMIT ? OFFSET ?
+                    """;
+
+            return jdbcTemplate.query(sql, new Object[]{userId, size, offset}, (rs, rowNum) -> {
+                CartUserResponse cart = new CartUserResponse();
+                cart.setCartId(rs.getInt("cart_id"));
+                cart.setName(rs.getString("name"));
+                cart.setColor(rs.getString("color"));
+                cart.setBrand(rs.getString("brand"));
+                cart.setImg(rs.getString("img"));
+                cart.setPrice(rs.getBigDecimal("price"));
+                cart.setQuantity(rs.getInt("quantity"));
+                cart.setAddedAt(rs.getTimestamp("added_at").toLocalDateTime());
+                return cart;
+            });
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public int countCartBelongUser(int userId){
+        try{
+            String sql = "SELECT COUNT(*) FROM cart WHERE user_id = ?";
+            return jdbcTemplate.queryForObject(sql, new Object[]{userId},Integer.class);
         }catch (Exception e){
             log.error(e.getMessage());
             throw e;

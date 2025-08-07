@@ -1,5 +1,6 @@
 package com.project.keyboard.repository.order;
 
+import com.project.keyboard.dto.request.CartItemRequest;
 import com.project.keyboard.dto.response.order.OrderResponse;
 import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.MonthlyOrderCount;
@@ -8,6 +9,7 @@ import com.project.keyboard.dto.response.revenue.WeekOrderRevenueDTO;
 import com.project.keyboard.dto.response.user.UserOrderResponse;
 import com.project.keyboard.entity.Order;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -27,4 +29,9 @@ public interface OrderRepository {
     List<WeekOrderRevenueDTO> getRevenueByWeek(LocalDate start, LocalDate end);
     List<UserOrderResponse> getOrdersByUser(int userId, int page, int size);
     int countOrdersByUser(int userId);
+    CartItemRequest getCartItemById(int cartId);
+    BigDecimal getPriceByVariantId(int variantId);
+    int insertOrder(int userId, BigDecimal total, String phone, String address, String email);
+    void insertOrderDetail(int orderId, int variantId, int quantity, BigDecimal price);
+    void deleteCartItem(int cartId);
 }

@@ -1,6 +1,7 @@
 package com.project.keyboard.repository.productVariant;
 
 import com.project.keyboard.dto.request.ProductVariantUpdateDTO;
+import com.project.keyboard.entity.Product;
 import com.project.keyboard.entity.ProductVariant;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -47,9 +48,29 @@ public class ProductVariantRepositoryImpl implements ProductVariantRepository{
 
     @Override
     public ProductVariant findById(int variantId){
-        try{
-            String query = "SELECT * FROM product_variants WHERE variant_id = ?";
-            return jdbcTemplate.queryForObject(query, new BeanPropertyRowMapper<>(ProductVariant.class), variantId);
+        try {
+            String sql = """
+            SELECT pv.variant_id, pv.color, pv.stock_quantity, pv.price,
+                   p.product_id, p.name as product_name
+            FROM product_variants pv
+            JOIN products p ON pv.product_id = p.product_id
+            WHERE pv.variant_id = ?
+        """;
+
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                ProductVariant variant = new ProductVariant();
+                variant.setVariantId(rs.getInt("variant_id"));
+                variant.setColor(rs.getString("color"));
+                variant.setStockQuantity(rs.getInt("stock_quantity"));
+                variant.setPrice(rs.getBigDecimal("price"));
+
+                Product product = new Product();
+                product.setProductId(rs.getInt("product_id"));
+                product.setName(rs.getString("product_name"));
+
+                variant.setProduct(product);
+                return variant;
+            }, variantId);
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -130,6 +151,18 @@ public class ProductVariantRepositoryImpl implements ProductVariantRepository{
             String sql = "SELECT * FROM product_variants WHERE product_id = ?";
             return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ProductVariant.class), productId);
         } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public Integer getStockByVariantId(int variantId){
+        try {
+            String sql = "SELECT stock_quantity FROM product_variants WHERE variant_id = ?";
+            Integer stock = jdbcTemplate.queryForObject(sql, Integer.class, variantId);
+            return stock == null ? 0 : stock;
+        }catch (Exception e) {
             log.error(e.getMessage());
             throw e;
         }

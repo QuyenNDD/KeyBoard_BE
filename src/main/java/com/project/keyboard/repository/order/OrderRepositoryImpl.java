@@ -1,5 +1,6 @@
 package com.project.keyboard.repository.order;
 
+import com.project.keyboard.dto.request.CartItemRequest;
 import com.project.keyboard.dto.response.order.OrderDetailResponse;
 import com.project.keyboard.dto.response.order.OrderResponse;
 import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
@@ -14,9 +15,15 @@ import org.apache.commons.logging.LogFactory;
 import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -83,6 +90,7 @@ public class OrderRepositoryImpl implements OrderRepository{
             throw e;
         }
     }
+
 
     @Override
     public int countOrders() {
@@ -484,6 +492,76 @@ public class OrderRepositoryImpl implements OrderRepository{
         try {
             String countSql = "SELECT COUNT(*) FROM orders WHERE user_id = ?";
             return jdbcTemplate.queryForObject(countSql, new Object[]{userId}, Integer.class);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+    @Override
+    public CartItemRequest getCartItemById(int cartId) {
+        try {
+            String sql = "SELECT * FROM cart WHERE cart_id = ?";
+            return jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<>(CartItemRequest.class), cartId);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public BigDecimal getPriceByVariantId(int variantId) {
+        try{
+            String sql = "SELECT price FROM product_variants WHERE variant_id = ?";
+            return jdbcTemplate.queryForObject(sql, BigDecimal.class, variantId);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw  e;
+        }
+    }
+
+    @Override
+    public int insertOrder(int userId, BigDecimal total, String phone, String address, String email) {
+        try {
+            String sql = """
+                         INSERT INTO orders(user_id, order_date, total_amount, phone, address, email, status)
+                         VALUES (?, NOW(), ?, ?, ?, ?, 'PENDING')
+                        """;
+
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                ps.setInt(1, userId);
+                ps.setBigDecimal(2, total);
+                ps.setString(3, phone);
+                ps.setString(4, address);
+                ps.setString(5, email);
+                return ps;
+            }, keyHolder);
+
+            return keyHolder.getKey().intValue();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void insertOrderDetail(int orderId, int variantId, int quantity, BigDecimal price) {
+        try {
+            String sql = "INSERT INTO order_details(order_id, variant_id, quantity, price) VALUES (?, ?, ?, ?)";
+            jdbcTemplate.update(sql, orderId, variantId, quantity, price);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void deleteCartItem(int cartId){
+        try {
+            String sql = "DELETE FROM cart WHERE cart_id = ?";
+            jdbcTemplate.update(sql, cartId);
         }catch (Exception e){
             log.error(e.getMessage());
             throw e;

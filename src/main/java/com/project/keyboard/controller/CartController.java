@@ -3,7 +3,10 @@ package com.project.keyboard.controller;
 import com.cloudinary.Api;
 import com.project.keyboard.dto.request.AddToCartRequest;
 import com.project.keyboard.dto.response.api.ApiResponse;
+import com.project.keyboard.dto.response.cart.CartUserResponse;
 import com.project.keyboard.dto.response.cart.TotalCartDTO;
+import com.project.keyboard.dto.response.order.OrderResponse;
+import com.project.keyboard.dto.response.page.PagedResponse;
 import com.project.keyboard.system.CartService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +72,35 @@ public class CartController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/getListCartUser")
+    public ResponseEntity<ApiResponse<List<CartUserResponse>>> getListCartUser(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Integer userId = (Integer) request.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>("Bạn chưa đăng nhập", 401, "unauthorized", null, null));
+            }
+            List<CartUserResponse> cartUserResponses = cartService.getListCartBelongUser(userId, page, size);
+            int totalElements = cartService.countCartBelongUser(userId);
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+            PagedResponse<CartUserResponse> pagedResponse = new PagedResponse<>();
+            pagedResponse.setContent(cartUserResponses);
+            pagedResponse.setTotalPages(totalPages);
+            pagedResponse.setTotalElements(totalElements);
+            pagedResponse.setSize(size);
+            pagedResponse.setPage(page);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Danh sach don hang", 200, "success", cartUserResponses, null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
         }
     }
 }

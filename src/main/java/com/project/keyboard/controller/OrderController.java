@@ -1,5 +1,6 @@
 package com.project.keyboard.controller;
 
+import com.project.keyboard.dto.request.OrderResquest;
 import com.project.keyboard.dto.response.api.ApiResponse;
 import com.project.keyboard.dto.response.order.OrderResponse;
 import com.project.keyboard.dto.response.page.PagedResponse;
@@ -276,4 +277,21 @@ public class OrderController {
         }
     }
 
+    @PostMapping("/place-order")
+    public ResponseEntity<ApiResponse<String>> placeOrder(@RequestBody OrderResquest orderResquest,
+                                                          HttpServletRequest request) {
+        try {
+            Integer userId = (Integer) request.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>("Người dùng chưa đăng nhập", 401, "unauthorized", null, null));
+            }
+
+            String message = orderService.placeOrder(userId, orderResquest);
+            return ResponseEntity.ok(new ApiResponse<>(message, 200, "success", null, null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Đặt hàng thất bại", 500, "error", null, e.getMessage()));
+        }
+    }
 }
