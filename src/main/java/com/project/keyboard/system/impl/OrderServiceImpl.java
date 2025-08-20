@@ -1,6 +1,7 @@
 package com.project.keyboard.system.impl;
 
 import com.project.keyboard.dto.request.CartItemRequest;
+import com.project.keyboard.dto.request.GuestOrderRequest;
 import com.project.keyboard.dto.request.OrderItemRequest;
 import com.project.keyboard.dto.request.OrderResquest;
 import com.project.keyboard.dto.response.order.OrderResponse;
@@ -10,6 +11,7 @@ import com.project.keyboard.dto.response.revenue.OrderRevenueDTO;
 import com.project.keyboard.dto.response.revenue.WeekOrderRevenueDTO;
 import com.project.keyboard.dto.response.user.UserOrderResponse;
 import com.project.keyboard.entity.Order;
+import com.project.keyboard.entity.Product;
 import com.project.keyboard.entity.ProductVariant;
 import com.project.keyboard.entity.Users;
 import com.project.keyboard.enums.OrderStatus;
@@ -18,6 +20,7 @@ import com.project.keyboard.repository.order.OrderRepository;
 import com.project.keyboard.repository.productVariant.ProductVariantRepository;
 import com.project.keyboard.repository.user.UserRepository;
 import com.project.keyboard.system.OrderService;
+import jakarta.validation.constraints.Email;
 import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +45,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private ProductVariantRepository productVariantRepository;
+
+    @Autowired
+    private EmailService emailService;
 
     @Override
     public List<Integer> getMonthlyOrderCount(int year) {
@@ -174,6 +180,67 @@ public class OrderServiceImpl implements OrderService {
             orderRepository.insertOrderDetail(orderId, item.getVariantId(), item.getQuantity(), price);
             orderRepository.deleteCartItem(item.getCartId());
         }
+
+        List<String> itemLines = new ArrayList<>();
+        for (CartItemRequest item : items) {
+            ProductVariant variant = productVariantRepository.findById(item.getVariantId());
+            Product product = variant.getProduct();
+
+            String line = product.getName() + " (" + variant.getColor() + ") x " + item.getQuantity()
+                    + " - " + String.format("%,.1f", orderRepository.getPriceByVariantId(item.getVariantId())) + " VNĐ";
+            itemLines.add(line);
+        }
+
+        String orderCode = "DH" + orderId;
+
+        emailService.sendOrderConfirmation(
+                resquest.getEmail(),
+                resquest.getPhone(),
+                resquest.getAddress(),
+                itemLines,
+                total,
+                orderCode
+        );
+
+        return "Đặt hàng thành công";
+    }
+
+    @Override
+    public String placeGuestOrder(GuestOrderRequest request){
+        Integer stock = productVariantRepository.getStockByVariantId(request.getVariantId());
+
+        if (stock == null){
+            stock = 0;
+        }
+
+        if (request.getQuantity() > stock || stock == null){
+            return "Sản phẩm không đủ số lượng. Chỉ còn lại: " + (stock == null ? 0 : stock);
+        }
+        BigDecimal price = orderRepository.getPriceByVariantId(request.getVariantId());
+        BigDecimal total = price.multiply(BigDecimal.valueOf(request.getQuantity()));
+
+        int orderId = orderRepository.insertGuestOrder(total, request.getPhone(), request.getAddress(), request.getEmail());
+
+        orderRepository.insertOrderDetail(orderId, request.getVariantId(), request.getQuantity(), price);
+
+        ProductVariant variant = productVariantRepository.findById(request.getVariantId());
+        Product product = variant.getProduct();
+
+        List<String> itemLines = new ArrayList<>();
+        itemLines.add(product.getName() + " (" + variant.getColor() + ") x " + request.getQuantity()
+                + " - " + String.format("%,.1f", price) + " VNĐ");
+
+        String orderCode = "GUEST" + orderId;
+
+        emailService.sendOrderConfirmation(
+                request.getEmail(),
+                request.getPhone(),
+                request.getAddress(),
+                itemLines,
+                total,
+                orderCode
+        );
+
         return "Đặt hàng thành công";
     }
 }

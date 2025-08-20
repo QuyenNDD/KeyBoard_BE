@@ -78,7 +78,7 @@ public class OrderRepositoryImpl implements OrderRepository{
                 order.setId(rs.getInt("order_id"));
                 order.setFullName(rs.getString("full_name"));
                 order.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
-                order.setTotalAmount(rs.getBigDecimal("total_amount"));
+                order.setPrice(rs.getBigDecimal("total_amount"));
                 order.setStatus(OrderStatus.valueOf(rs.getString("status")));
                 order.setPhone(rs.getString("phone"));
                 order.setAddress(rs.getString("address"));
@@ -116,7 +116,7 @@ public class OrderRepositoryImpl implements OrderRepository{
                 order.setId(rs.getInt("order_id"));
                 order.setFullName(rs.getString("full_name"));
                 order.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
-                order.setTotalAmount(rs.getBigDecimal("total_amount"));
+                order.setPrice(rs.getBigDecimal("total_amount"));
                 order.setStatus(OrderStatus.valueOf(rs.getString("status")));
                 order.setPhone(rs.getString("phone"));
                 order.setAddress(rs.getString("address"));
@@ -148,7 +148,7 @@ public class OrderRepositoryImpl implements OrderRepository{
                 order.setId(rs.getInt("order_id"));
                 order.setFullName(rs.getString("full_name"));
                 order.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
-                order.setTotalAmount(rs.getBigDecimal("total_amount"));
+                order.setPrice(rs.getBigDecimal("total_amount"));
                 order.setStatus(OrderStatus.valueOf(rs.getString("status")));
                 order.setPhone(rs.getString("phone"));
                 order.setAddress(rs.getString("address"));
@@ -196,7 +196,7 @@ public class OrderRepositoryImpl implements OrderRepository{
                         o.setId(rs.getInt("order_id"));
                         o.setFullName(rs.getString("full_name"));
                         o.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
-                        o.setTotalAmount(rs.getBigDecimal("total_amount"));
+                        o.setPrice(rs.getBigDecimal("total_amount"));
                         o.setPhone(rs.getString("phone"));
                         o.setAddress(rs.getString("address"));
                         o.setEmail(rs.getString("email"));
@@ -266,7 +266,7 @@ public class OrderRepositoryImpl implements OrderRepository{
                         o.setId(rs.getInt("order_id"));
                         o.setFullName(rs.getString("full_name"));
                         o.setOrderDate(rs.getTimestamp("order_date").toLocalDateTime());
-                        o.setTotalAmount(rs.getBigDecimal("total_amount"));
+                        o.setPrice(rs.getBigDecimal("total_amount"));
                         o.setPhone(rs.getString("phone"));
                         o.setAddress(rs.getString("address"));
                         o.setEmail(rs.getString("email"));
@@ -563,6 +563,30 @@ public class OrderRepositoryImpl implements OrderRepository{
             String sql = "DELETE FROM cart WHERE cart_id = ?";
             jdbcTemplate.update(sql, cartId);
         }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public int insertGuestOrder(BigDecimal total, String phone, String address, String email){
+        try {
+            String sql = "INSERT INTO orders(user_id, order_date, total_amount, phone, address, email, status)\n" +
+                    "                         VALUES (NULL, NOW(), ?, ?, ?, ?, 'PENDING')";
+
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                ps.setBigDecimal(1, total);
+                ps.setString(2, phone);
+                ps.setString(3, address);
+                ps.setString(4, email);
+                return ps;
+            }, keyHolder);
+
+            return keyHolder.getKey().intValue();
+        }catch (Exception e) {
             log.error(e.getMessage());
             throw e;
         }

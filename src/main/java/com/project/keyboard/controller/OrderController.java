@@ -1,5 +1,6 @@
 package com.project.keyboard.controller;
 
+import com.project.keyboard.dto.request.GuestOrderRequest;
 import com.project.keyboard.dto.request.OrderResquest;
 import com.project.keyboard.dto.response.api.ApiResponse;
 import com.project.keyboard.dto.response.order.OrderResponse;
@@ -294,4 +295,16 @@ public class OrderController {
                     .body(new ApiResponse<>("Đặt hàng thất bại", 500, "error", null, e.getMessage()));
         }
     }
+
+    @PostMapping("/place-guest-order")
+    public ResponseEntity<ApiResponse<String>> placeGuestOrder(@RequestBody GuestOrderRequest guestOrderRequest) {
+        try {
+            String message = orderService.placeGuestOrder(guestOrderRequest);
+            return ResponseEntity.ok(new ApiResponse<>(message, 200, "success", null, null));
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("Đặt hàng thất bại", 500, "error", null, e.getMessage()));
+        }
+    }
+
 }

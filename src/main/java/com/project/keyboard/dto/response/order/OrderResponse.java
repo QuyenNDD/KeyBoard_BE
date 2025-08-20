@@ -12,7 +12,7 @@ public class OrderResponse {
     private int id;
     private String fullName;
     private LocalDateTime orderDate;
-    private BigDecimal totalAmount;
+    private BigDecimal price;
     private String phone;
     private String address;
     private String email;

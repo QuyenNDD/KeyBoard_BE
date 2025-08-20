@@ -34,4 +34,5 @@ public interface OrderRepository {
     int insertOrder(int userId, BigDecimal total, String phone, String address, String email);
     void insertOrderDetail(int orderId, int variantId, int quantity, BigDecimal price);
     void deleteCartItem(int cartId);
+    int insertGuestOrder(BigDecimal total, String phone, String address, String email);
 }

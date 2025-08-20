@@ -1,5 +1,6 @@
 package com.project.keyboard.system;
 
+import com.project.keyboard.dto.request.GuestOrderRequest;
 import com.project.keyboard.dto.request.OrderResquest;
 import com.project.keyboard.dto.response.order.OrderResponse;
 import com.project.keyboard.dto.response.revenue.DayOrderRevenueDTO;
@@ -29,7 +30,7 @@ public interface OrderService {
     List<WeekOrderRevenueDTO> getRevenueByWeek(LocalDate start, LocalDate end);
     List<UserOrderResponse> getOrdersByUser(int userId, int page, int size);
     int countOrdersByUser(int userId);
-
     OrderResponse getOrderByIdForUser(int orderId, Integer userId);
     String placeOrder(int userId, OrderResquest orderResquest);
+    String placeGuestOrder(GuestOrderRequest guestOrderRequest);
 }

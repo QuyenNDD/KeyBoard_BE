@@ -17,7 +17,8 @@ public class JwtTokenUtil {
     private static final long ACCESS_TOKEN_VALIDITY_USER = 60 * 60 * 1000; // 1 giờ
     private static final long REFRESH_TOKEN_VALIDITY_USER = 7 * 24 * 60 * 60 * 1000; // 7 ngày
 
-    private static final long ACCESS_TOKEN_VALIDITY_ADMIN = 30 * 60 * 1000; // 30 phút
+    private static final long ACCESS_TOKEN_VALIDITY_ADMIN = 60 * 60 * 1000;
+//    private static final long ACCESS_TOKEN_VALIDITY_ADMIN = 30 * 60 * 1000;// 30 phút
     private static final long REFRESH_TOKEN_VALIDITY_ADMIN = 2 * 24 * 60 * 60 * 1000; // 2 ngày
 
     private Key getSigningKey() {
