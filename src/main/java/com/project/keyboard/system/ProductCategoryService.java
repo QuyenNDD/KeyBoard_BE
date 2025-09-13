@@ -1,6 +1,7 @@
 package com.project.keyboard.system;
 
 import com.project.keyboard.dto.request.ProductCategoryRequestDTO;
+import com.project.keyboard.dto.response.category.DetailCatgoryDTO;
 import com.project.keyboard.dto.response.category.ProductCategoryDTO;
 import com.project.keyboard.entity.ProductCategory;
 
@@ -11,4 +12,5 @@ public interface ProductCategoryService {
     ProductCategory createCategory(ProductCategoryRequestDTO dto);
     ProductCategory updateCategory(ProductCategoryRequestDTO dto, int id);
     void deleteCategory(int id);
+    DetailCatgoryDTO getDetailCategory(int id);
 }

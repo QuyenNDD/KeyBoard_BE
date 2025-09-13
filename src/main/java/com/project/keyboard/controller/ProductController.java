@@ -1,13 +1,17 @@
 package com.project.keyboard.controller;
 
+import com.cloudinary.Api;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.keyboard.dto.PriceOption;
 import com.project.keyboard.dto.request.ProductRequestDTO;
 import com.project.keyboard.dto.request.ProductUpdateDTO;
 import com.project.keyboard.dto.request.ProductVariantRequestDTO;
 import com.project.keyboard.dto.request.ProductVariantUpdateDTO;
+import com.project.keyboard.dto.response.FilterProductResponse;
 import com.project.keyboard.dto.response.api.ApiResponse;
 import com.project.keyboard.dto.response.page.PagedResponse;
+import com.project.keyboard.dto.response.product.NewProductDTO;
 import com.project.keyboard.dto.response.product.ProductResponeDTO;
 import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
@@ -32,6 +36,15 @@ public class ProductController {
 
     @Autowired
     private CloudinaryService cloudinaryService;
+
+    private final List<PriceOption> priceOptionList = List.of(
+            new PriceOption("lt-100000", " And min_price <= 100000"),
+            new PriceOption("100000-200000", " And min_price > 100000 And min_price <= 200000"),
+            new PriceOption("200000-300000", " And min_price > 200000 And min_price <= 300000"),
+            new PriceOption("300000-500000", " And min_price > 300000 And min_price <= 500000"),
+            new PriceOption("500000-1000000", " And min_price > 500000 And min_price <= 1000000"),
+            new PriceOption("gt-1000000", " And min_price > 1000000")
+    );
 
     @GetMapping("/getListProduct")
     public ResponseEntity<ApiResponse<PagedResponse<ProductResponeDTO>>> getListProduct(
@@ -92,7 +105,7 @@ public class ProductController {
 
             // Parse variants nếu có
             List<ProductVariantRequestDTO> variantsDTO = new ArrayList<>();
-            if (variantsJson != null && !variantsJson.trim().isEmpty()) {
+            if (variantsJson != null && !variantsJson.trim().isEmpty() && !variantsJson.equals("[]")) {
                 variantsDTO = mapper.readValue(variantsJson, new TypeReference<List<ProductVariantRequestDTO>>() {});
             }
 
@@ -172,16 +185,14 @@ public class ProductController {
             ProductUpdateDTO dto = mapper.readValue(productJson, ProductUpdateDTO.class);
 
             // Lấy các file biến thể riêng
-            Map<Integer, MultipartFile> variantImageFiles = new HashMap<>();
+            Map<String, List<MultipartFile>> variantImageFiles = new HashMap<>();
             Iterator<String> fileNames = request.getFileNames();
             while (fileNames.hasNext()) {
-                String fileName = fileNames.next();
+                String fileName = fileNames.next(); // ví dụ: variantImages_a, variantImages_38
                 if (fileName.startsWith("variantImages_")) {
-                    String idxStr = fileName.substring("variantImages_".length());
-                    int index = Integer.parseInt(idxStr);
-                    MultipartFile file = request.getFile(fileName);
-                    if (file != null && !file.isEmpty()) {
-                        variantImageFiles.put(index, file);
+                    List<MultipartFile> files = request.getFiles(fileName);
+                    if (files != null && !files.isEmpty()) {
+                        variantImageFiles.put(fileName, files);
                     }
                 }
             }
@@ -205,6 +216,55 @@ public class ProductController {
             return ResponseEntity.ok(
                     new ApiResponse<>("Lấy danh sách sản phẩm bán chạy thất bại", 500, "error", null, e.getMessage())
             );
+        }
+    }
+
+    @GetMapping("/getNewProduct")
+    public ResponseEntity<ApiResponse<List<NewProductDTO>>> getNewProduct(@RequestParam(defaultValue = "5") int limit){
+        try {
+            List<NewProductDTO> list = productService.getNewProduct(limit);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Lấy danh sách sản phẩm mới thành công", 200, "success", list, null)
+            );
+        }catch (Exception e){
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Lấy danh sách sản phẩm mới thất bại", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<PagedResponse<FilterProductResponse>>> filterProduct(@RequestParam(defaultValue = "") String price,
+                                                                                           @RequestParam(defaultValue = "") String stock,
+                                                                                           @RequestParam(defaultValue = "0") int page,
+                                                                                           @RequestParam(defaultValue = "10") int size
+    ){
+        try{
+            String defaulPriceQuery = "";
+            for (PriceOption option : priceOptionList){
+                if (price.trim().equals(option.getPriceOption())){
+                    defaulPriceQuery = option.getQuerySql();
+                    break;
+                }
+            }
+            if (stock.trim().equals("availabe")){
+                defaulPriceQuery = defaulPriceQuery + " and stock_quantity > 0";
+            }
+            List<FilterProductResponse> products = productService.filterProduct(defaulPriceQuery, page, size);
+            int totalElements = productService.countFilterProduct(defaulPriceQuery);
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+
+            PagedResponse<FilterProductResponse> pagedResponse = new PagedResponse<>();
+            pagedResponse.setContent(products);
+            pagedResponse.setTotalPages(totalPages);
+            pagedResponse.setTotalElements(totalElements);
+            pagedResponse.setSize(size);
+            pagedResponse.setPage(page);
+
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Lấy danh sách sản phẩm thành công", 200, "success", pagedResponse, null));
+        }catch (Exception e){
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Lấy danh sách sản phẩm thất bại", 500, "error", null, e.getMessage()));
         }
     }
 }

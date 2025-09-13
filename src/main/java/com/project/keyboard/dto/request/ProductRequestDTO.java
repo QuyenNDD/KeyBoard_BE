@@ -8,7 +8,7 @@ import java.util.List;
 public class ProductRequestDTO {
     private String name;
     private String brand;
-    private String category;
+    private int categoryId;
     private String description;
     private boolean status;
 

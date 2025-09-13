@@ -8,6 +8,7 @@ import java.util.List;
 public interface CartService {
     List<TotalCartDTO> getTotalCart();
     String addToCart(int userId, int variantId, int quantity);
-    List<CartUserResponse> getListCartBelongUser(int userId, int page, int size);
+    List<CartUserResponse> getListCartBelongUser(int userId);
     int countCartBelongUser(int userId);
+    void deleteCart(int userId, int cartId);
 }

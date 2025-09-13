@@ -5,6 +5,6 @@ import lombok.Data;
 @Data
 public class ProductCategoryRequestDTO {
     private String name;
-    private String parentName;
+    private Integer parentName;
     private String description;
 }

@@ -12,6 +12,7 @@ import com.project.keyboard.dto.response.revenue.WeekOrderRevenueDTO;
 import com.project.keyboard.entity.Order;
 import com.project.keyboard.enums.OrderStatus;
 import com.project.keyboard.system.OrderService;
+import com.project.keyboard.system.impl.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,6 +28,9 @@ import java.util.List;
 public class OrderController {
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping("/monthly-order-count")
     public ResponseEntity<ApiResponse<List<Integer>>> getMonthlyOrderCount(@RequestParam int year, HttpServletRequest request) {
@@ -46,7 +50,7 @@ public class OrderController {
     }
 
     @GetMapping("/getListOrder")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getListOrders(
+    public ResponseEntity<ApiResponse<PagedResponse<OrderResponse>>> getListOrders(
             HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -66,7 +70,7 @@ public class OrderController {
             pagedResponse.setSize(size);
             pagedResponse.setPage(page);
             return ResponseEntity.ok(
-                    new ApiResponse<>("Danh sach don hang", 200, "success", orders, null)
+                    new ApiResponse<>("Danh sach don hang", 200, "success", pagedResponse, null)
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
@@ -75,7 +79,7 @@ public class OrderController {
     }
 
     @GetMapping("/getListOrder/user")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getListUserOrders(
+    public ResponseEntity<ApiResponse<PagedResponse<OrderResponse>>> getListUserOrders(
             HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -96,7 +100,7 @@ public class OrderController {
             pagedResponse.setSize(size);
             pagedResponse.setPage(page);
             return ResponseEntity.ok(
-                    new ApiResponse<>("Danh sach don hang", 200, "success", orders, null)
+                    new ApiResponse<>("Danh sach don hang", 200, "success", pagedResponse, null)
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
@@ -288,7 +292,25 @@ public class OrderController {
                         .body(new ApiResponse<>("Người dùng chưa đăng nhập", 401, "unauthorized", null, null));
             }
 
+//          check mail
+            String email = orderResquest.getEmail();
+            try {
+                emailService.sendTestMail(email, "Xác nhận email", "Email này hợp lệ để đặt hàng.");
+            } catch (Exception e) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse<>("Không thể gửi email xác nhận. Vui lòng kiểm tra lại địa chỉ email.",
+                                001, "email_send_failed", null, null));
+            }
+
+
             String message = orderService.placeOrder(userId, orderResquest);
+            if (message.equals("Bạn không có quyền")){
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền", 403, "forbidden", null, null));
+            } else if (!message.equals("Đặt hàng thành công")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new ApiResponse<>(message, 400, "error", null, null));
+            }
             return ResponseEntity.ok(new ApiResponse<>(message, 200, "success", null, null));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

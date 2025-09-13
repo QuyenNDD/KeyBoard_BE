@@ -1,4 +1,4 @@
-package com.project.keyboard.dto.response.revenue;
+package com.project.keyboard.dto.response;
 
 import lombok.Data;
 
@@ -6,10 +6,10 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Data
-public class TopSellingProductDTO {
+public class FilterProductResponse {
     private int id;
-    private String name;
+    private String title;
     private BigDecimal price;
-    private int totalSold;
+    private boolean isSoldOut;
     private List<String> images;
 }

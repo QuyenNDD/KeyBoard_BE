@@ -17,6 +17,6 @@ public class OrderResponse {
     private String address;
     private String email;
     private OrderStatus status;
-
+    private BigDecimal shippingFee;
     private List<OrderDetailResponse> orderDetails;
 }

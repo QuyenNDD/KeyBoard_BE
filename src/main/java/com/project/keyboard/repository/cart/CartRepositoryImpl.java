@@ -2,9 +2,12 @@ package com.project.keyboard.repository.cart;
 
 import com.project.keyboard.dto.response.cart.CartUserResponse;
 import com.project.keyboard.dto.response.cart.TotalCartDTO;
+import com.project.keyboard.entity.Cart;
+import com.project.keyboard.entity.ProductCategory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -85,9 +88,8 @@ public class CartRepositoryImpl implements CartRepository{
     }
 
     @Override
-    public List<CartUserResponse> getListCartBelongUser(int userId, int page, int size){
+    public List<CartUserResponse> getListCartBelongUser(int userId){
         try {
-            int offset = page * size;
             String sql = """
                     SELECT  c.cart_id,
                             p.name,
@@ -102,10 +104,9 @@ public class CartRepositoryImpl implements CartRepository{
                     JOIN products p ON p.product_id = pv.product_id
                     WHERE c.user_id = ?
                     ORDER BY c.added_at DESC
-                    LIMIT ? OFFSET ?
                     """;
 
-            return jdbcTemplate.query(sql, new Object[]{userId, size, offset}, (rs, rowNum) -> {
+            return jdbcTemplate.query(sql, new Object[]{userId}, (rs, rowNum) -> {
                 CartUserResponse cart = new CartUserResponse();
                 cart.setCartId(rs.getInt("cart_id"));
                 cart.setName(rs.getString("name"));
@@ -128,6 +129,28 @@ public class CartRepositoryImpl implements CartRepository{
         try{
             String sql = "SELECT COUNT(*) FROM cart WHERE user_id = ?";
             return jdbcTemplate.queryForObject(sql, new Object[]{userId},Integer.class);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public Cart findById(int cartId, int userId){
+        try {
+            String sql = "SELECT * FROM cart WHERE cart_id = ? AND user_id = ?";
+            return jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<>(Cart.class), cartId, userId);
+        }catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public int deleteById(int cartId, int userId){
+        try {
+            String sql = "DELETE FROM cart WHERE cart_id = ? AND user_id = ?";
+            return jdbcTemplate.update(sql, cartId, userId);
         }catch (Exception e){
             log.error(e.getMessage());
             throw e;

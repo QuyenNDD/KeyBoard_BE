@@ -167,14 +167,13 @@ public class OrderServiceImpl implements OrderService {
                 ProductVariant productVariant = productVariantRepository.findById(cartItem.getVariantId());
                 return "Sản phẩm " + productVariant.getProduct().getName() + " " + productVariant.getColor() + " không đủ số lượng. Còn lại " + stock + " sản phẩm";
             }
-
             BigDecimal itemsTotal = price.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             total = total.add(itemsTotal);
-
             items.add(cartItem);
         }
-        int orderId = orderRepository.insertOrder(userId, total, resquest.getPhone(), resquest.getAddress(), resquest.getEmail());
-
+        BigDecimal shippingFee = BigDecimal.valueOf(25000);
+        BigDecimal finalTotal = total.add(shippingFee);
+        int orderId = orderRepository.insertOrder(userId, finalTotal, resquest.getPhone(), resquest.getAddress(), resquest.getEmail(), resquest.getFullName());
         for (CartItemRequest item : items){
             BigDecimal price = orderRepository.getPriceByVariantId(item.getVariantId());
             orderRepository.insertOrderDetail(orderId, item.getVariantId(), item.getQuantity(), price);
@@ -198,8 +197,9 @@ public class OrderServiceImpl implements OrderService {
                 resquest.getPhone(),
                 resquest.getAddress(),
                 itemLines,
-                total,
-                orderCode
+                finalTotal,
+                orderCode,
+                shippingFee
         );
 
         return "Đặt hàng thành công";
@@ -218,8 +218,9 @@ public class OrderServiceImpl implements OrderService {
         }
         BigDecimal price = orderRepository.getPriceByVariantId(request.getVariantId());
         BigDecimal total = price.multiply(BigDecimal.valueOf(request.getQuantity()));
-
-        int orderId = orderRepository.insertGuestOrder(total, request.getPhone(), request.getAddress(), request.getEmail());
+        BigDecimal shippingFee = BigDecimal.valueOf(25000);
+        BigDecimal finalTotal = total.add(shippingFee);
+        int orderId = orderRepository.insertGuestOrder(finalTotal, request.getPhone(), request.getAddress(), request.getEmail(), request.getFullName());
 
         orderRepository.insertOrderDetail(orderId, request.getVariantId(), request.getQuantity(), price);
 
@@ -237,10 +238,10 @@ public class OrderServiceImpl implements OrderService {
                 request.getPhone(),
                 request.getAddress(),
                 itemLines,
-                total,
-                orderCode
+                finalTotal,
+                orderCode,
+                shippingFee
         );
-
         return "Đặt hàng thành công";
     }
 }

@@ -86,19 +86,29 @@ public class CartController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(new ApiResponse<>("Bạn chưa đăng nhập", 401, "unauthorized", null, null));
             }
-            List<CartUserResponse> cartUserResponses = cartService.getListCartBelongUser(userId, page, size);
-            int totalElements = cartService.countCartBelongUser(userId);
-            int totalPages = (int) Math.ceil((double) totalElements / size);
-            PagedResponse<CartUserResponse> pagedResponse = new PagedResponse<>();
-            pagedResponse.setContent(cartUserResponses);
-            pagedResponse.setTotalPages(totalPages);
-            pagedResponse.setTotalElements(totalElements);
-            pagedResponse.setSize(size);
-            pagedResponse.setPage(page);
+            List<CartUserResponse> cartUserResponses = cartService.getListCartBelongUser(userId);
             return ResponseEntity.ok(
                     new ApiResponse<>("Danh sach don hang", 200, "success", cartUserResponses, null)
             );
         } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/delete/{cartId}")
+    public ResponseEntity<ApiResponse<String>> deleteCart(@PathVariable int cartId, HttpServletRequest request) {
+        try {
+            Integer userId = (Integer) request.getAttribute("userId");
+            System.out.println(userId);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>("Bạn chưa đăng nhập", 401, "unauthorized", null, null));
+            }
+            cartService.deleteCart(userId, cartId);
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Xóa thành công", 200, "success", null, null));
+        }catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
         }

@@ -27,7 +27,7 @@ public class UserController {
     private OrderService orderService;
 
     @GetMapping("/getListUser")
-    public ResponseEntity<ApiResponse<List<UserDTO>>> getListUser(
+    public ResponseEntity<ApiResponse<PagedResponse<UserDTO>>> getListUser(
             HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size){
@@ -48,7 +48,7 @@ public class UserController {
             pagedResponse.setSize(size);
             pagedResponse.setPage(page);
             return ResponseEntity.ok(
-                    new ApiResponse<>("Lấy danh sách người dùng thành công", 200, "success", users, null)
+                    new ApiResponse<>("Lấy danh sách người dùng thành công", 200, "success", pagedResponse, null)
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
@@ -77,7 +77,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}/orders")
-    public ResponseEntity<ApiResponse<List<UserOrderResponse>>> getUserOrders(
+    public ResponseEntity<ApiResponse<PagedResponse<UserOrderResponse>>> getUserOrders(
             @PathVariable int id,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -99,7 +99,7 @@ public class UserController {
             pagedResponse.setSize(size);
             pagedResponse.setPage(page);
 
-            return ResponseEntity.ok(new ApiResponse<>("Lấy danh sách đơn hàng thành công", 200, "success", orders, null));
+            return ResponseEntity.ok(new ApiResponse<>("Lấy danh sách đơn hàng thành công", 200, "success", pagedResponse, null));
         }catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage())

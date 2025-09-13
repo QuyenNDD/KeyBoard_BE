@@ -66,9 +66,8 @@ public class OrderRepositoryImpl implements OrderRepository{
         try{
             int offset = page * size;
             String sql = """
-            SELECT o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+            SELECT o.order_id, o.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email, o.shipping_fee
             FROM orders o
-            JOIN users u ON o.user_id = u.user_id
             ORDER BY o.order_date DESC
             LIMIT ? OFFSET ?
             """;
@@ -83,6 +82,7 @@ public class OrderRepositoryImpl implements OrderRepository{
                 order.setPhone(rs.getString("phone"));
                 order.setAddress(rs.getString("address"));
                 order.setEmail(rs.getString("email"));
+                order.setShippingFee(rs.getBigDecimal("shipping_fee"));
                 return order;
             });
         } catch (Exception e) {
@@ -103,7 +103,7 @@ public class OrderRepositoryImpl implements OrderRepository{
         try {
             int offset = page * size;
             String sql = """
-            SELECT o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+            SELECT o.order_id, o.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
             FROM orders o
             JOIN users u ON o.user_id = u.user_id
             WHERE o.user_id = ?
@@ -135,9 +135,8 @@ public class OrderRepositoryImpl implements OrderRepository{
             int offset = page * size;
 
             String sql = """
-        SELECT o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+        SELECT o.order_id, o.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
         FROM orders o
-        JOIN users u ON o.user_id = u.user_id
         WHERE DATE(o.order_date) = ?
         ORDER BY o.order_date DESC
         LIMIT ? OFFSET ?
@@ -182,9 +181,8 @@ public class OrderRepositoryImpl implements OrderRepository{
     public OrderResponse getOrderById(int id){
         try{
             String sql = """
-        SELECT  o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+        SELECT  o.order_id, o.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email, o.shipping_fee
                                           	FROM orders o
-                                            JOIN users u on o.user_id = u.user_id
                                             WHERE o.order_id = ?
     """;
 
@@ -201,6 +199,7 @@ public class OrderRepositoryImpl implements OrderRepository{
                         o.setAddress(rs.getString("address"));
                         o.setEmail(rs.getString("email"));
                         o.setStatus(OrderStatus.valueOf(rs.getString("status")));
+                        o.setShippingFee(rs.getBigDecimal("shipping_fee"));
                         return o;
                     }
             );
@@ -252,9 +251,8 @@ public class OrderRepositoryImpl implements OrderRepository{
     public OrderResponse getOrderByIdForUser(int id, int userId) {
         try {
             String sql = """
-            SELECT o.order_id, u.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
+            SELECT o.order_id, o.full_name, o.order_date, o.total_amount, o.status, o.phone, o.address, o.email
             FROM orders o
-            JOIN users u ON o.user_id = u.user_id
             WHERE o.order_id = ? AND o.user_id = ?
         """;
 
@@ -520,13 +518,12 @@ public class OrderRepositoryImpl implements OrderRepository{
     }
 
     @Override
-    public int insertOrder(int userId, BigDecimal total, String phone, String address, String email) {
+    public int insertOrder(int userId, BigDecimal total, String phone, String address, String email, String fullName) {
         try {
             String sql = """
-                         INSERT INTO orders(user_id, order_date, total_amount, phone, address, email, status)
-                         VALUES (?, NOW(), ?, ?, ?, ?, 'PENDING')
+                         INSERT INTO orders(user_id, order_date, total_amount, phone, address, email, status, full_name)
+                         VALUES (?, NOW(), ?, ?, ?, ?, 'PENDING', ?)
                         """;
-
             KeyHolder keyHolder = new GeneratedKeyHolder();
 
             jdbcTemplate.update(connection -> {
@@ -536,6 +533,7 @@ public class OrderRepositoryImpl implements OrderRepository{
                 ps.setString(3, phone);
                 ps.setString(4, address);
                 ps.setString(5, email);
+                ps.setString(6, fullName);
                 return ps;
             }, keyHolder);
 
@@ -569,19 +567,18 @@ public class OrderRepositoryImpl implements OrderRepository{
     }
 
     @Override
-    public int insertGuestOrder(BigDecimal total, String phone, String address, String email){
+    public int insertGuestOrder(BigDecimal total, String phone, String address, String email, String fullName){
         try {
-            String sql = "INSERT INTO orders(user_id, order_date, total_amount, phone, address, email, status)\n" +
-                    "                         VALUES (NULL, NOW(), ?, ?, ?, ?, 'PENDING')";
-
+            String sql = "INSERT INTO orders(user_id, order_date, total_amount, phone, address, email, status, full_name)\n" +
+                    "                         VALUES (NULL, NOW(), ?, ?, ?, ?, 'PENDING', ?)";
             KeyHolder keyHolder = new GeneratedKeyHolder();
-
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                 ps.setBigDecimal(1, total);
                 ps.setString(2, phone);
                 ps.setString(3, address);
                 ps.setString(4, email);
+                ps.setString(5, fullName);
                 return ps;
             }, keyHolder);
 

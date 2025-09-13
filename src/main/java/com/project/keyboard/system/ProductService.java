@@ -2,6 +2,8 @@ package com.project.keyboard.system;
 
 import com.project.keyboard.dto.request.ProductRequestDTO;
 import com.project.keyboard.dto.request.ProductUpdateDTO;
+import com.project.keyboard.dto.response.FilterProductResponse;
+import com.project.keyboard.dto.response.product.NewProductDTO;
 import com.project.keyboard.dto.response.product.ProductResponeDTO;
 import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
@@ -16,8 +18,11 @@ public interface ProductService {
     Product createProduct(ProductRequestDTO productRequestDTO);
     boolean disableProduct(int productId);
     void updateProductWithImages(ProductUpdateDTO dto, List<MultipartFile> productImages,
-                                 Map<Integer, MultipartFile> variantImageFiles);
+                                 Map<String, List<MultipartFile>> variantImageFiles);
     void updateProduct(ProductUpdateDTO dto);
     List<TopSellingProductDTO> getTopSellingProduct(int limit);
+    List<NewProductDTO> getNewProduct(int limit);
     ProductResponeDTO getProductById(int productId);
+    List<FilterProductResponse> filterProduct(String price, int page, int size);
+    int countFilterProduct(String filterQuery);
 }

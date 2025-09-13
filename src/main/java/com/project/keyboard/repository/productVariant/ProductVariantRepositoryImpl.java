@@ -36,10 +36,10 @@ public class ProductVariantRepositoryImpl implements ProductVariantRepository{
     }
 
     @Override
-    public void deleteById(int id) {
+    public void deleteById(int variantId) {
         try {
             String query = "DELETE FROM product_variants WHERE variant_id = ?";
-            jdbcTemplate.update(query, id);
+            jdbcTemplate.update(query, variantId);
         }catch (Exception e){
             log.error(e.getMessage());
             throw e;

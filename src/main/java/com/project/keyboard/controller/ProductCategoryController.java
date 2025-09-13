@@ -2,6 +2,7 @@ package com.project.keyboard.controller;
 
 import com.project.keyboard.dto.request.ProductCategoryRequestDTO;
 import com.project.keyboard.dto.response.api.ApiResponse;
+import com.project.keyboard.dto.response.category.DetailCatgoryDTO;
 import com.project.keyboard.dto.response.category.ProductCategoryDTO;
 import com.project.keyboard.entity.ProductCategory;
 import com.project.keyboard.system.ProductCategoryService;
@@ -52,7 +53,8 @@ public class ProductCategoryController {
     }
 
     @PutMapping("/updateProductCategory/{id}")
-    public ResponseEntity<ApiResponse<Void>> updateProductCategory(@RequestBody ProductCategoryRequestDTO dto, @PathVariable int id,
+    public ResponseEntity<ApiResponse<Void>> updateProductCategory(@RequestBody ProductCategoryRequestDTO dto,
+                                                                   @PathVariable int id,
                                                                    HttpServletRequest request){
         try {
             Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
@@ -80,6 +82,23 @@ public class ProductCategoryController {
             }
             productCategoryService.deleteCategory(id);
             return ResponseEntity.ok(new ApiResponse<>("Xóa danh mục sản phẩm thành công", 200, "success", null, null));
+        }catch (Exception e){
+            return ResponseEntity.ok(
+                    new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/detailCategory/{id}")
+    public ResponseEntity<ApiResponse<DetailCatgoryDTO>> detailCategory(@PathVariable int id, HttpServletRequest request){
+        try{
+            Boolean isAdmin = (Boolean) request.getAttribute("isAdmin");
+            if (isAdmin == null || !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>("Bạn không có quyền truy cập!", 403, "forbidden", null, null));
+            }
+
+            DetailCatgoryDTO dto = productCategoryService.getDetailCategory(id);
+            return ResponseEntity.ok(new ApiResponse<>("Lấy chi tiết danh mục sản phẩm thành công", 200, "success", dto, null));
         }catch (Exception e){
             return ResponseEntity.ok(
                     new ApiResponse<>("Đã xảy ra lỗi", 500, "error", null, e.getMessage()));

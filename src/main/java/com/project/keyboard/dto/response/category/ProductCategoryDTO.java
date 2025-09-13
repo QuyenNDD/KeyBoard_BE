@@ -4,11 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductCategoryDTO {
-    private String name;
+    private int categoryId;
     private String parentName;
-    private String description;
+    private List<ChildenCategoryDTO> children;
 }

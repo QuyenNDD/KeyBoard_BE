@@ -31,8 +31,8 @@ public interface OrderRepository {
     int countOrdersByUser(int userId);
     CartItemRequest getCartItemById(int cartId);
     BigDecimal getPriceByVariantId(int variantId);
-    int insertOrder(int userId, BigDecimal total, String phone, String address, String email);
+    int insertOrder(int userId, BigDecimal total, String phone, String address, String email, String fullName);
     void insertOrderDetail(int orderId, int variantId, int quantity, BigDecimal price);
     void deleteCartItem(int cartId);
-    int insertGuestOrder(BigDecimal total, String phone, String address, String email);
+    int insertGuestOrder(BigDecimal total, String phone, String address, String email, String fullName);
 }

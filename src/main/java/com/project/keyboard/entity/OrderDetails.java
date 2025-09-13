@@ -31,5 +31,4 @@ public class OrderDetails {
     @Column(precision = 18, scale = 2)
     private BigDecimal price;
 
-
 }

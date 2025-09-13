@@ -1,6 +1,10 @@
 package com.project.keyboard.repository.product;
 
+import com.project.keyboard.dto.request.ProductImgDTO;
 import com.project.keyboard.dto.request.ProductUpdateDTO;
+import com.project.keyboard.dto.response.FilterProductResponse;
+import com.project.keyboard.dto.response.product.NewProductDTO;
+import com.project.keyboard.dto.response.product.ProductResponeDTO;
 import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
 import com.project.keyboard.entity.Product;
 import com.project.keyboard.entity.ProductCategory;
@@ -22,6 +26,8 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Repository
@@ -178,9 +184,8 @@ public class ProductRepositoryImpl implements ProductRepository{
     public void updateProduct(ProductUpdateDTO dto){
 
         try{
-            String categoryName = dto.getCategory();
-
-            ProductCategory category = categoryRepository.findByName(categoryName);
+            Integer categoryName = dto.getCategoryId();
+            ProductCategory category = categoryRepository.findById(categoryName);
             if (category == null) {
                 throw new RuntimeException("Danh mục sản phẩm không tồn tại");
             }
@@ -202,26 +207,27 @@ public class ProductRepositoryImpl implements ProductRepository{
     public List<TopSellingProductDTO> getTopSellingProduct(int limit){
         try {
             String sql = """
-                SELECT 
-                    pv.product_id AS id,
-                    p.name,
-                    SUM(od.quantity) AS totalSold,
-                    SUBSTRING_INDEX(p.imgs, ';', 1) AS img
-                FROM
-                    order_details od
-                JOIN
-                    product_variants pv ON od.variant_id = pv.variant_id
-                JOIN
-                    products p ON pv.product_id = p.product_id
-                JOIN
-                    orders o ON od.order_id = o.order_id
-                WHERE
-                    o.status = 'Completed'
-                GROUP BY
-                    pv.product_id, p.name, p.imgs
-                ORDER BY
-                    totalSold DESC
-                LIMIT ?
+                SELECT\s
+                                       pv.product_id AS id,
+                                       p.name,
+                                       p.min_price,
+                                       SUM(od.quantity) AS totalSold,
+                                       p.imgs
+                                   FROM
+                                       order_details od
+                                   JOIN
+                                       product_variants pv ON od.variant_id = pv.variant_id
+                                   JOIN
+                                       products p ON pv.product_id = p.product_id
+                                   JOIN
+                                       orders o ON od.order_id = o.order_id
+                                   WHERE
+                                       o.status = 'Completed'
+                                   GROUP BY
+                                       pv.product_id, p.name, p.imgs
+                                   ORDER BY
+                                       totalSold DESC
+                                   LIMIT ?
             """;
 
             return jdbcTemplate.query(
@@ -231,11 +237,67 @@ public class ProductRepositoryImpl implements ProductRepository{
                         TopSellingProductDTO dto = new TopSellingProductDTO();
                         dto.setId(rs.getInt("id"));
                         dto.setName(rs.getString("name"));
+                        dto.setPrice(rs.getBigDecimal("min_price"));
                         dto.setTotalSold(rs.getInt("totalSold"));
-                        dto.setImg(rs.getString("img"));
+                        String imgsStr = rs.getString("imgs");
+                        List<String> imgs = new ArrayList<>();
+                        if (imgsStr != null && !imgsStr.isBlank()) {
+                            String[] parts = imgsStr.split(",");
+                            if (parts.length >= 2) {
+                                imgs.add(parts[0].trim());
+                                imgs.add(parts[1].trim());
+                            } else if (parts.length == 1) {
+                                // Nếu chỉ có 1 ảnh thì nhân đôi
+                                imgs.add(parts[0].trim());
+                                imgs.add(parts[0].trim());
+                            }
+                        }
+                        dto.setImages(imgs);
                         return dto;
                     }
             );
+        }catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public List<NewProductDTO> getNewProduct(int limit){
+        try {
+            String sql = """
+                    SELECT product_id AS id,
+                                                               name,
+                                                               min_price AS price,
+                                                               imgs,
+                                                               (CASE WHEN stock_quantity = 0 THEN 1 ELSE 0 END) AS is_sold_out
+                                                        FROM products
+                                                        WHERE status = 1
+                                                        ORDER BY created_at DESC
+                                                        LIMIT ?
+              """;
+            return jdbcTemplate.query(sql, new Object[]{limit}, (rs, rowNum) -> {
+                NewProductDTO dto = new NewProductDTO();
+                dto.setId(rs.getInt("id"));
+                dto.setName(rs.getString("name"));
+                dto.setPrice(rs.getBigDecimal("price"));
+                String imgsStr = rs.getString("imgs");
+                List<String> imgs = new ArrayList<>();
+                if (imgsStr != null && !imgsStr.isBlank()) {
+                    String[] parts = imgsStr.split(",");
+                    if (parts.length >= 2) {
+                        imgs.add(parts[0].trim());
+                        imgs.add(parts[1].trim());
+                    } else if (parts.length == 1) {
+                        // Nếu chỉ có 1 ảnh thì nhân đôi
+                        imgs.add(parts[0].trim());
+                        imgs.add(parts[0].trim());
+                    }
+                }
+                dto.setImages(imgs);
+                dto.setSoldOut(rs.getBoolean("is_sold_out"));
+                return dto;
+            });
         }catch (Exception e) {
             log.error(e.getMessage());
             throw e;
@@ -288,6 +350,63 @@ public class ProductRepositoryImpl implements ProductRepository{
         } catch (EmptyResultDataAccessException e) {
             return null;
         } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public List<FilterProductResponse> filterProduct(String filterSql, int page, int size){
+        try{
+            int offset = page * size;
+            StringBuilder sql = new StringBuilder( """
+                            SELECT DISTINCT p.product_id, p.name, p.min_price, p.imgs, p.stock_quantity
+                            FROM products p
+                            WHERE status = 1
+                            """);
+            sql.append(filterSql).append("\n");
+            sql.append("ORDER BY p.min_price\n" +
+                    "        LIMIT ? OFFSET ?");
+            return jdbcTemplate.query(sql.toString(), new Object[]{size, offset}, (rs, rowNum) -> {
+                FilterProductResponse dto = new FilterProductResponse();
+                dto.setId(rs.getInt("product_id"));
+                dto.setTitle(rs.getString("name"));
+                dto.setPrice(rs.getBigDecimal("min_price"));
+                String imgsStr = rs.getString("imgs");
+                List<String> imgs = new ArrayList<>();
+                if (imgsStr != null && !imgsStr.isBlank()) {
+                    String[] parts = imgsStr.split(",");
+                    if (parts.length >= 2) {
+                        imgs.add(parts[0].trim());
+                        imgs.add(parts[1].trim());
+                    } else if (parts.length == 1) {
+                        // Nếu chỉ có 1 ảnh thì nhân đôi
+                        imgs.add(parts[0].trim());
+                        imgs.add(parts[0].trim());
+                    }
+                }
+                dto.setImages(imgs);
+                int stock_quantity = rs.getInt("stock_quantity");
+                dto.setSoldOut(stock_quantity > 0);
+                return dto;
+            });
+        }catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public int countFilterProduct(String filterQuery){
+        try {
+            StringBuilder sql = new StringBuilder("""
+                    SELECT COUNT(DISTINCT p.product_id)
+                            FROM products p
+                            WHERE status = 1
+                    """);
+            sql.append(filterQuery);
+            return jdbcTemplate.queryForObject(sql.toString(), Integer.class);
+        }catch (Exception e) {
             log.error(e.getMessage());
             throw e;
         }

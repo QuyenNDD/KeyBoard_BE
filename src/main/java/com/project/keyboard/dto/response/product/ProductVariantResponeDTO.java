@@ -14,5 +14,5 @@ public class ProductVariantResponeDTO {
     private int stockQuantity;
     private String sku;
     private boolean deleted;
-    private VariantImgDTO variantImgDTO;
+    private VariantImgDTO variantImg;
 }

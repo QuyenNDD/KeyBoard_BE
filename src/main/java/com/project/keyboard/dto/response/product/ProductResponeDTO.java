@@ -12,8 +12,9 @@ public class ProductResponeDTO {
     private String name;
     private String brand;
     private BigDecimal minPrice;
+    private int categoryId;
     private String description;
     private String category;
-    private ProductImgDTO productImgDTO;
+    private ProductImgDTO productImg;
     private List<ProductVariantResponeDTO> variants;
 }

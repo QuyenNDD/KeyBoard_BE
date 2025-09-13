@@ -2,6 +2,7 @@ package com.project.keyboard.system.impl;
 
 import com.project.keyboard.dto.response.cart.CartUserResponse;
 import com.project.keyboard.dto.response.cart.TotalCartDTO;
+import com.project.keyboard.entity.Cart;
 import com.project.keyboard.entity.Users;
 import com.project.keyboard.repository.cart.CartRepository;
 import com.project.keyboard.repository.user.UserRepository;
@@ -41,12 +42,24 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public List<CartUserResponse> getListCartBelongUser(int userId, int page, int size){
-        return cartRepository.getListCartBelongUser(userId, page, size);
+    public List<CartUserResponse> getListCartBelongUser(int userId){
+        return cartRepository.getListCartBelongUser(userId);
     }
 
     @Override
     public int countCartBelongUser(int userId){
         return cartRepository.countCartBelongUser(userId);
+    }
+
+    @Override
+    public void deleteCart(int userId, int cartId){
+//        Cart cart = cartRepository.findById(cartId, userId);
+//        if (cart == null) {
+//            throw new RuntimeException("Cart not found");
+//        }
+        int rs = cartRepository.deleteById(cartId, userId);
+        if (rs == 0) {
+            throw new RuntimeException("Cart not found");
+        }
     }
 }

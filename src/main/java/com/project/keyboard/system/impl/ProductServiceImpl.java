@@ -1,6 +1,9 @@
 package com.project.keyboard.system.impl;
 
 import com.project.keyboard.dto.request.*;
+import com.project.keyboard.dto.response.FilterProductResponse;
+import com.project.keyboard.dto.response.category.DetailCatgoryDTO;
+import com.project.keyboard.dto.response.product.NewProductDTO;
 import com.project.keyboard.dto.response.product.ProductResponeDTO;
 import com.project.keyboard.dto.response.product.ProductVariantResponeDTO;
 import com.project.keyboard.dto.response.revenue.TopSellingProductDTO;
@@ -57,7 +60,7 @@ public class ProductServiceImpl implements ProductService {
             } else {
                 productImgDTO.setExistingImg(new ArrayList<>());
             }
-            dto.setProductImgDTO(productImgDTO);
+            dto.setProductImg(productImgDTO);
 
             // Biến thể
             List<ProductVariantResponeDTO> variants = productVariantRepository.findByProductId(product.getProductId())
@@ -77,7 +80,7 @@ public class ProductServiceImpl implements ProductService {
                         } else {
                             variantImgDTO.setExistingImg(new ArrayList<>());
                         }
-                        vv.setVariantImgDTO(variantImgDTO);
+                        vv.setVariantImg(variantImgDTO);
 
                         return vv;
                     }).collect(Collectors.toList());
@@ -102,7 +105,7 @@ public class ProductServiceImpl implements ProductService {
         product.setStatus(productRequestDTO.isStatus());
         product.setImgs(productRequestDTO.getImgs());
 
-        ProductCategory category = productCategoryRepository.findByName(productRequestDTO.getCategory());
+        ProductCategory category = productCategoryRepository.findById(productRequestDTO.getCategoryId());
 
         product.setCategory(category);
 
@@ -146,19 +149,26 @@ public class ProductServiceImpl implements ProductService {
         existingProduct.setName(dto.getName());
         existingProduct.setBrand(dto.getBrand());
         existingProduct.setDescription(dto.getDescription());
-
         // Cập nhật danh mục
-        ProductCategory category = productCategoryRepository.findByName(dto.getCategory());
+        ProductCategory category = productCategoryRepository.findById(dto.getCategoryId());
         existingProduct.setCategory(category);
 
         // Bước 3: Xử lý biến thể
         for (ProductVariantUpdateDTO variantDTO : dto.getVariants()) {
+            String rawId = variantDTO.getVariantId();
+            boolean isExisting = rawId != null && rawId.matches("\\d+"); // true nếu id là số
+
+            // 1️⃣ Xóa biến thể
             if (variantDTO.isDeleted()) {
-                if (variantDTO.getVariantId() != 0) {
-                    productVariantRepository.deleteById(variantDTO.getVariantId());
+                if (isExisting) {
+                    int variantId = Integer.parseInt(rawId);
+                    productVariantRepository.deleteById(variantId);
                 }
-            } else if (variantDTO.getVariantId() == 0) {
-                // Biến thể mới
+                continue;
+            }
+
+            // 2️⃣ Thêm biến thể mới (id = null hoặc id tạm "a","b","c")
+            if (!isExisting) {
                 ProductVariant newVariant = new ProductVariant();
                 newVariant.setColor(variantDTO.getColor());
                 newVariant.setPrice(variantDTO.getPrice());
@@ -166,19 +176,26 @@ public class ProductServiceImpl implements ProductService {
                 newVariant.setImg(variantDTO.getImg());
                 newVariant.setSku(variantDTO.getSku());
                 newVariant.setProduct(existingProduct);
+
                 productVariantRepository.save(newVariant);
-            } else {
-                // Cập nhật biến thể cũ
-                ProductVariant variant = new ProductVariant();
-                variant.setVariantId(variantDTO.getVariantId());
-                variant.setColor(variantDTO.getColor());
-                variant.setPrice(variantDTO.getPrice());
-                variant.setStockQuantity(variantDTO.getStockQuantity());
-                variant.setImg(variantDTO.getImg());
-                variant.setSku(variantDTO.getSku());
-                variant.setProduct(existingProduct);
-                productVariantRepository.update(variant);
+                continue;
             }
+
+            // 3️⃣ Cập nhật biến thể cũ (id là số)
+            int variantId = Integer.parseInt(rawId);
+            ProductVariant variant = productVariantRepository.findById(variantId);
+            if (variant == null) {
+                throw new RuntimeException("Không tìm thấy biến thể id=" + variantId);
+            }
+
+            variant.setColor(variantDTO.getColor());
+            variant.setPrice(variantDTO.getPrice());
+            variant.setStockQuantity(variantDTO.getStockQuantity());
+            variant.setImg(variantDTO.getImg());
+            variant.setSku(variantDTO.getSku());
+            variant.setProduct(existingProduct);
+
+            productVariantRepository.update(variant);
         }
 
         // Cập nhật lại bảng product
@@ -188,12 +205,14 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void updateProductWithImages(ProductUpdateDTO dto,
                                         List<MultipartFile> productImages,
-                                        Map<Integer, MultipartFile> variantImageFiles) {
+                                        Map<String, List<MultipartFile>> variantImageFiles) {
 
         // ===== 1️⃣ Xử lý ẢNH SẢN PHẨM CHUNG =====
-
         // Lấy sản phẩm gốc
         Product existingProduct = productRepository.findById(dto.getProductId());
+        if (existingProduct == null) {
+            throw new RuntimeException("Không tìm thấy sản phẩm");
+        }
         List<String> oldImgsInDb = new ArrayList<>();
         if (existingProduct.getImgs() != null && !existingProduct.getImgs().isEmpty()) {
             oldImgsInDb = Arrays.asList(existingProduct.getImgs().split(";"));
@@ -235,44 +254,60 @@ public class ProductServiceImpl implements ProductService {
 
         // ===== 2️⃣ Xử lý BIẾN THỂ =====
 
-        for (int i = 0; i < dto.getVariants().size(); i++) {
-            ProductVariantUpdateDTO v = dto.getVariants().get(i);
-
+        for (ProductVariantUpdateDTO v : dto.getVariants()) {
+            // Trường hợp xoá biến thể
             if (v.isDeleted()) {
-                if (v.getVariantId() != 0 && v.getVariantId() > 0) {
-                    productVariantRepository.deleteVariantById(v.getVariantId());
+                if (v.getVariantId() != null && v.getVariantId().matches("\\d+")) { // chỉ xoá trong DB nếu id số
+                    productVariantRepository.deleteVariantById(Integer.parseInt(v.getVariantId()));
                 }
                 continue;
             }
 
             String finalVariantImg = null;
 
-            // Có file mới ➜ upload, ghi đè
-            if (variantImageFiles.containsKey(i)) {
-                try {
-                    finalVariantImg = cloudinaryService.upload(variantImageFiles.get(i));
-                }catch (IOException e) {
-                    throw new RuntimeException("Upload ảnh thất bại!", e);
+            // Key ảnh biến thể: variantImages_a, variantImages_b... hoặc variantImages_38
+            String key = "variantImages_" + v.getVariantId();
+
+            if (variantImageFiles.containsKey(key) && !variantImageFiles.get(key).isEmpty()) {
+                // Có file mới ➜ upload, ghi đè hoặc thêm mới
+                List<String> newUploaded = new ArrayList<>();
+                for (MultipartFile file : variantImageFiles.get(key)) {
+                    try {
+                        String url = cloudinaryService.upload(file);
+                        newUploaded.add(url);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Upload ảnh thất bại!", e);
+                    }
                 }
 
+                // Giữ ảnh cũ + thêm ảnh mới (nếu muốn chỉ giữ mới thì FE gửi existingImg rỗng)
+                List<String> keepVariantImgs = v.getVariantImg() != null
+                        ? v.getVariantImg().getExistingImg()
+                        : new ArrayList<>();
+
+                List<String> merged = new ArrayList<>(keepVariantImgs);
+                merged.addAll(newUploaded);
+
+                finalVariantImg = String.join(";", merged);
+
             } else {
-                // Giữ link cũ nếu có
-                if (v.getVariantImg() != null && v.getVariantImg().getExistingImg() != null && !v.getVariantImg().getExistingImg().isEmpty()) {
-                    finalVariantImg = v.getVariantImg().getExistingImg().get(0);
+                // Không có ảnh mới, chỉ giữ ảnh cũ
+                if (v.getVariantImg() != null && v.getVariantImg().getExistingImg() != null
+                        && !v.getVariantImg().getExistingImg().isEmpty()) {
+                    finalVariantImg = String.join(";", v.getVariantImg().getExistingImg());
                 }
             }
 
             v.setImg(finalVariantImg);
 
-            if (v.getVariantId() != 0 && v.getVariantId() > 0) {
+            // Update hoặc insert variant
+            if (v.getVariantId() != null && v.getVariantId().matches("\\d+")) {
                 productVariantRepository.updateVariant(v);
             } else {
                 productVariantRepository.insertVariant(v, dto.getProductId());
             }
         }
-
         // ===== 3️⃣ Cập nhật bảng products =====
-
         productRepository.updateProduct(dto);
     }
 
@@ -281,6 +316,10 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.getTopSellingProduct(limit);
     }
 
+    @Override
+    public List<NewProductDTO> getNewProduct(int limit){
+        return productRepository.getNewProduct(limit);
+    }
 
     @Override
     public ProductResponeDTO getProductById(int productId) {
@@ -296,9 +335,11 @@ public class ProductServiceImpl implements ProductService {
         dto.setDescription(product.getDescription());
         if (product.getCategory() != null) {
             dto.setCategory(product.getCategory().getName());
+            dto.setCategoryId(product.getCategory().getCategoryId());
         } else {
             dto.setCategory(null);
         }
+
 
         // Ảnh sản phẩm
         ProductImgDTO productImgDTO = new ProductImgDTO();
@@ -308,7 +349,7 @@ public class ProductServiceImpl implements ProductService {
         } else {
             productImgDTO.setExistingImg(new ArrayList<>());
         }
-        dto.setProductImgDTO(productImgDTO);
+        dto.setProductImg(productImgDTO);
         List<ProductVariantResponeDTO> variantList = productVariantRepository.findByProductId(product.getProductId())
                 .stream()
                 .map(variant -> {
@@ -327,7 +368,7 @@ public class ProductServiceImpl implements ProductService {
                     } else {
                         variantImgDTO.setExistingImg(new ArrayList<>());
                     }
-                    vDTO.setVariantImgDTO(variantImgDTO);
+                    vDTO.setVariantImg(variantImgDTO);
 
                     return vDTO;
                 }).collect(Collectors.toList());
@@ -335,5 +376,15 @@ public class ProductServiceImpl implements ProductService {
         dto.setVariants(variantList);
 
         return dto;
+    }
+
+    @Override
+    public List<FilterProductResponse> filterProduct(String price, int page, int size){
+        return productRepository.filterProduct(price, page, size);
+    }
+
+    @Override
+    public int countFilterProduct(String filterQuery){
+        return productRepository.countFilterProduct(filterQuery);
     }
 }

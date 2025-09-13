@@ -1,6 +1,7 @@
 package com.project.keyboard.system.impl;
 
 import com.project.keyboard.dto.request.ProductCategoryRequestDTO;
+import com.project.keyboard.dto.response.category.DetailCatgoryDTO;
 import com.project.keyboard.dto.response.category.ProductCategoryDTO;
 import com.project.keyboard.entity.ProductCategory;
 import com.project.keyboard.repository.category.ProductCategoryRepository;
@@ -18,16 +19,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 
     @Override
     public List<ProductCategoryDTO> getListProductCategory() {
-        List<ProductCategory> categories = categoryRepository.getListProductCategory();
-
-        return categories.stream().map(category -> {
-            String parentName = category.getParent() != null ? category.getParent().getName() : null;
-            return new ProductCategoryDTO(
-                    category.getName(),
-                    category.getDescription(),
-                    parentName
-            );
-        }).collect(Collectors.toList());
+        return categoryRepository.getListProductCategory();
     }
 
     @Override
@@ -37,8 +29,8 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         }
 
         ProductCategory parent = null;
-        if (dto.getParentName() != null && !dto.getParentName().trim().isEmpty()) {
-            parent = categoryRepository.findByName(dto.getParentName());
+        if (dto.getParentName() != 0) {
+            parent = categoryRepository.findById(dto.getParentName());
             if (parent == null) {
                 throw new RuntimeException("Không tìm thấy danh mục cha: " + dto.getParentName());
             }
@@ -61,8 +53,8 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         }
 
         ProductCategory parent = null;
-        if (dto.getParentName() != null && !dto.getParentName().trim().isEmpty()) {
-            parent = categoryRepository.findByName(dto.getParentName());
+        if (dto.getParentName() != 0) {
+            parent = categoryRepository.findById(dto.getParentName());
             if (parent == null) {
                 throw new RuntimeException("Không tìm thấy danh mục cha: " + dto.getParentName());
             }
@@ -83,5 +75,10 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
             throw new RuntimeException("Không tìm thấy danh mục!");
         }
         categoryRepository.deleteById(id);
+    }
+
+    @Override
+    public DetailCatgoryDTO getDetailCategory(int id){
+        return categoryRepository.getDetailCategory(id);
     }
 }

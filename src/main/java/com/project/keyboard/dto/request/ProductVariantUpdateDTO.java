@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 public class ProductVariantUpdateDTO {
-    private int variantId; // null nếu là biến thể mới
+    private String variantId; // null nếu là biến thể mới
     private String color;
     private BigDecimal price;
     private int stockQuantity;

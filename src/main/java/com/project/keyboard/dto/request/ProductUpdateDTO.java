@@ -10,7 +10,7 @@ public class ProductUpdateDTO {
     private String name;
     private String brand;
     private String description;
-    private String category; // tên danh mục
+    private Integer categoryId;
     private ProductImgDTO productImg;
     private List<ProductVariantUpdateDTO> variants;
     private String imgs;
